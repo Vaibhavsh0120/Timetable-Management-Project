@@ -39,6 +39,9 @@ export async function updateSession(request: NextRequest) {
   const isPublicRoute = publicRoutes.some(route => 
     request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(route + "/")
   )
+  
+  // Allow timetable routes for authenticated users
+  const isTimetableRoute = request.nextUrl.pathname.startsWith("/timetable/")
 
   // If the user is not signed in and the current path is not a public route, redirect to /login
   if (!user && !isPublicRoute) {
@@ -53,6 +56,8 @@ export async function updateSession(request: NextRequest) {
     url.pathname = '/'
     return NextResponse.redirect(url)
   }
+  
+  // Timetable routes require authentication (already checked above)
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
   // creating a new response object with NextResponse.next() make sure to:

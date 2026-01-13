@@ -30,7 +30,11 @@ const days: Day[] = [
   { id: 5, name: "Friday" },
 ]
 
-export const TimetableManagement = () => {
+interface TimetableManagementProps {
+  timetableId: string
+}
+
+export const TimetableManagement = ({ timetableId }: TimetableManagementProps) => {
   const { toast } = useToast()
   const router = useRouter()
   const supabase = createClient()
@@ -55,7 +59,7 @@ export const TimetableManagement = () => {
     updateTeacherInTimeTable,
     clearTimeTable,
     checkTeacherConflict,
-  } = useTimetable()
+  } = useTimetable(timetableId)
 
   useEffect(() => {
     fetchClasses()

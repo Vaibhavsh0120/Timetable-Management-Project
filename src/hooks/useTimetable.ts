@@ -4,7 +4,7 @@ import { useState, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { Day, TimeSlot, TimeTableEntry } from "../types"
 
-export const useTimetable = () => {
+export const useTimetable = (timetableId: string) => {
   const [timeTable, setTimeTable] = useState<TimeTableEntry[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const supabase = createClient()
@@ -27,6 +27,7 @@ export const useTimetable = () => {
           .from("timetableentries")
           .select("*")
           .eq("user_id", user.id)
+          .eq("timetable_id", timetableId)
           .eq("class_id", classId)
           .eq("section_id", sectionId)
 
@@ -48,6 +49,7 @@ export const useTimetable = () => {
             const existing = existingEntriesMap.get(key)
             return {
               user_id: user.id,
+              timetable_id: timetableId,
               class_id: classId,
               section_id: sectionId,
               day_id: day.id,
@@ -61,7 +63,7 @@ export const useTimetable = () => {
         const { data, error } = await supabase
           .from("timetableentries")
           .upsert(entriesToUpsert, {
-            onConflict: "user_id,class_id,section_id,day_id,time_slot_id",
+            onConflict: "user_id,timetable_id,class_id,section_id,day_id,time_slot_id",
           })
           .select()
 
@@ -101,6 +103,7 @@ export const useTimetable = () => {
           .from("timetableentries")
           .select("*")
           .eq("user_id", user.id)
+          .eq("timetable_id", timetableId)
           .eq("class_id", classId)
           .eq("section_id", sectionId)
 
@@ -117,7 +120,7 @@ export const useTimetable = () => {
         setIsLoading(false)
       }
     },
-    [supabase],
+    [supabase, timetableId],
   )
 
   const updateTeacherInTimeTable = useCallback(
@@ -145,6 +148,7 @@ export const useTimetable = () => {
           .upsert(
             {
               user_id: user.id,
+              timetable_id: timetableId,
               class_id: classId,
               section_id: sectionId,
               day_id: dayId,
@@ -152,7 +156,7 @@ export const useTimetable = () => {
               teacher_id: teacherId,
               subject_id: subjectId,
             },
-            { onConflict: "user_id,class_id,section_id,day_id,time_slot_id" },
+            { onConflict: "user_id,timetable_id,class_id,section_id,day_id,time_slot_id" },
           )
           .select()
           .single()

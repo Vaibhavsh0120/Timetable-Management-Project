@@ -37,9 +37,18 @@ export type Day = {
   name: string
 }
 
+export type Timetable = {
+  id: string  // UUID
+  user_id: string  // UUID
+  name: string
+  created_at: string
+  updated_at: string
+}
+
 export type TimeTableEntry = {
   id: string  // UUID
   user_id: string  // UUID
+  timetable_id: string  // UUID - Reference to timetables table
   teacher_id: string | null  // UUID
   class_id: string  // UUID
   section_id: string  // UUID

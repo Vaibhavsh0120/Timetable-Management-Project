@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { TimetableManagement } from "@/components/TimetableManagement"
+import { TimetableDashboard } from "@/components/TimetableDashboard"
 
 export default async function Home() {
   const supabase = await createClient()
@@ -12,10 +12,6 @@ export default async function Home() {
     redirect("/login")
   }
 
-  return (
-    <main className="min-h-screen bg-background">
-      <TimetableManagement />
-    </main>
-  )
+  return <TimetableDashboard />
 }
 
