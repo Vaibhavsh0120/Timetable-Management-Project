@@ -35,10 +35,22 @@ export default function Signup() {
   }, [supabase, router])
 
   // Password validation
-  const getPasswordStrength = (pwd: string) => {
-    if (pwd.length === 0) return { strength: 0, label: "", checks: [] }
-    
-    const checks = {
+  type PasswordChecks = {
+    length: boolean
+    uppercase: boolean
+    lowercase: boolean
+    number: boolean
+    special: boolean
+  }
+
+  type PasswordStrength = {
+    strength: number
+    label: string
+    checks: PasswordChecks
+  }
+
+  const getPasswordStrength = (pwd: string): PasswordStrength => {
+    const checks: PasswordChecks = {
       length: pwd.length >= 8,
       uppercase: /[A-Z]/.test(pwd),
       lowercase: /[a-z]/.test(pwd),

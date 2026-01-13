@@ -1,10 +1,9 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/use-toast"
-import { LogOut } from "lucide-react"
 import { ClassSectionSelector } from "./ClassSection/ClassSectionSelector"
 import { ClassSectionManager } from "./ClassSection/ClassSectionManager"
 import { TeacherSubjectManager } from "./TeacherSubject/TeacherSubjectManager"
@@ -19,8 +18,6 @@ import { useTimetable } from "../hooks/useTimetable"
 import type { TimeTableEntry, TimeSlot, Day } from "../types"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
 
 const days: Day[] = [
   { id: 1, name: "Monday" },
@@ -36,8 +33,6 @@ interface TimetableManagementProps {
 
 export const TimetableManagement = ({ timetableId }: TimetableManagementProps) => {
   const { toast } = useToast()
-  const router = useRouter()
-  const supabase = createClient()
   const [selectedClass, setSelectedClass] = useState<string | null>(null)
   const [selectedSection, setSelectedSection] = useState<string | null>(null)
   const [isManagingClasses, setIsManagingClasses] = useState(false)
@@ -45,6 +40,7 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
   const [editingTimeSlot, setEditingTimeSlot] = useState<TimeSlot | null>(null)
   const [isManagingTimeSlots, setIsManagingTimeSlots] = useState(false)
   const [isManagingTeachersSubjects, setIsManagingTeachersSubjects] = useState(false)
+  const hasInitializedRef = useRef<string | null>(null)
 
   const { classes, addClass, updateClass, deleteClass, addSection, updateSection, deleteSection, fetchClasses } =
     useClasses()
@@ -68,9 +64,37 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
     fetchTimeSlots()
   }, [fetchClasses, fetchTeachers, fetchSubjects, fetchTimeSlots])
 
+  // Initialize timetable when time slots become available after section is selected
+  useEffect(() => {
+    if (!selectedClass || !selectedSection) {
+      hasInitializedRef.current = null
+      return
+    }
+    
+    const sectionKey = `${selectedClass}-${selectedSection}`
+    const timeSlotsCount = Array.isArray(timeSlots) ? timeSlots.length : 0
+    const timeTableCount = Array.isArray(timeTable) ? timeTable.length : 0
+    
+    if (timeSlotsCount > 0 && !isLoading && hasInitializedRef.current !== sectionKey) {
+      // Only initialize if we don't have entries yet (new timetable or first load)
+      if (timeTableCount === 0 && Array.isArray(timeSlots)) {
+        hasInitializedRef.current = sectionKey
+        initializeTimeTable(selectedClass, selectedSection, days, timeSlots)
+      }
+    }
+  }, [
+    selectedClass ?? '',
+    selectedSection ?? '',
+    Array.isArray(timeSlots) ? timeSlots.length : 0,
+    isLoading,
+    Array.isArray(timeTable) ? timeTable.length : 0,
+    initializeTimeTable,
+  ])
+
   const handleClassChange = useCallback(
     (classId: string) => {
       clearTimeTable()
+      hasInitializedRef.current = null
       setSelectedClass(classId)
       setSelectedSection(null)
     },
@@ -80,11 +104,23 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
   const handleSectionChange = useCallback(
     async (sectionId: string) => {
       if (!selectedClass) return
+      
       setSelectedSection(sectionId)
-      await initializeTimeTable(selectedClass, sectionId, days, timeSlots)
+      hasInitializedRef.current = null // Reset so effect can initialize if needed
+      
+      // Don't initialize if time slots haven't loaded yet
+      if (!timeSlots || timeSlots.length === 0) {
+        console.warn("Time slots not loaded yet, skipping initialization")
+        // Try to fetch existing timetable entries instead
+        await fetchTimetable(selectedClass, sectionId)
+        return
+      }
+      
+      // If time slots are available, try to fetch first (in case entries already exist)
       await fetchTimetable(selectedClass, sectionId)
+      // The useEffect will handle initialization if no entries exist
     },
-    [selectedClass, initializeTimeTable, fetchTimetable, timeSlots],
+    [selectedClass, fetchTimetable, timeSlots],
   )
 
   const handleCellClick = useCallback((entry: TimeTableEntry) => {
@@ -155,20 +191,10 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
     ],
   )
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push("/login")
-  }
-
   return (
     <div className="container mx-auto p-4">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Timetable Management System</h1>
-        <div className="flex items-center space-x-4">
-          <Button onClick={handleLogout} variant="outline">
-            <LogOut className="mr-2 h-4 w-4" /> Logout
-          </Button>
-        </div>
       </div>
       <div className="mb-4 flex items-center space-x-2">
         <ClassSectionSelector

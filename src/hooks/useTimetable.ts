@@ -21,6 +21,20 @@ export const useTimetable = (timetableId: string) => {
         return
       }
 
+      // Check if timeSlots is empty
+      if (!timeSlots || timeSlots.length === 0) {
+        console.error("Cannot initialize timetable: time slots are not loaded yet")
+        setIsLoading(false)
+        return
+      }
+
+      // Check if days is empty
+      if (!days || days.length === 0) {
+        console.error("Cannot initialize timetable: days are not provided")
+        setIsLoading(false)
+        return
+      }
+
       try {
         // First, fetch existing entries
         const { data: existingEntries, error: fetchError } = await supabase
@@ -60,6 +74,13 @@ export const useTimetable = (timetableId: string) => {
           }),
         )
 
+        // Don't upsert if there are no entries to create
+        if (entriesToUpsert.length === 0) {
+          console.warn("No entries to upsert")
+          setIsLoading(false)
+          return
+        }
+
         const { data, error } = await supabase
           .from("timetableentries")
           .upsert(entriesToUpsert, {
@@ -69,21 +90,23 @@ export const useTimetable = (timetableId: string) => {
 
         if (error) {
           console.error("Error initializing timetable:", error)
+          console.error("Error details:", JSON.stringify(error, null, 2))
           setIsLoading(false)
           return
         }
 
         setTimeTable(data || [])
-
-        // Fetch the timetable after initialization to ensure we have the latest data
-        await fetchTimetable(classId, sectionId)
       } catch (error) {
         console.error("Unexpected error initializing timetable:", error)
+        if (error instanceof Error) {
+          console.error("Error message:", error.message)
+          console.error("Error stack:", error.stack)
+        }
       } finally {
         setIsLoading(false)
       }
     },
-    [supabase],
+    [supabase, timetableId],
   )
 
   const fetchTimetable = useCallback(

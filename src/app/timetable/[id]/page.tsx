@@ -17,40 +17,74 @@ export default function TimetablePage() {
   const [timetable, setTimetable] = useState<Timetable | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
+  // Extract id from params to avoid serialization issues
+  const timetableId = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : ''
+
   useEffect(() => {
+    if (!timetableId) {
+      router.push("/")
+      return
+    }
+
     const fetchTimetable = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        router.push("/login")
-        return
-      }
+      try {
+        // Get user - middleware should have already verified authentication
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        
+        if (!user) {
+          // If no user, middleware should redirect, but just in case:
+          console.warn("No user found, redirecting to login")
+          router.push("/login")
+          return
+        }
 
-      const timetableId = params.id as string
-      const { data, error } = await supabase
-        .from("timetables")
-        .select("*")
-        .eq("id", timetableId)
-        .eq("user_id", user.id)
-        .single()
+        // Fetch the timetable
+        const { data, error } = await supabase
+          .from("timetables")
+          .select("*")
+          .eq("id", timetableId)
+          .eq("user_id", user.id)
+          .single()
 
-      if (error || !data) {
+        if (error) {
+          console.error("Error fetching timetable:", error)
+          toast({
+            title: "Error",
+            description: error.message || "Timetable not found",
+            variant: "destructive",
+          })
+          router.push("/")
+          return
+        }
+
+        if (!data) {
+          toast({
+            title: "Error",
+            description: "Timetable not found",
+            variant: "destructive",
+          })
+          router.push("/")
+          return
+        }
+
+        setTimetable(data)
+      } catch (error) {
+        console.error("Unexpected error:", error)
         toast({
           title: "Error",
-          description: "Timetable not found",
+          description: "An unexpected error occurred",
           variant: "destructive",
         })
         router.push("/")
-        return
+      } finally {
+        setIsLoading(false)
       }
-
-      setTimetable(data)
-      setIsLoading(false)
     }
 
     fetchTimetable()
-  }, [params.id, router, supabase, toast])
+  }, [timetableId, router, supabase, toast])
 
   if (isLoading) {
     return (
