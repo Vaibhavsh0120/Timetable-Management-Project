@@ -1,17 +1,16 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "./useAuth"
 import type { Subject } from "../types"
 
 export const useSubjects = () => {
   const [subjects, setSubjects] = useState<Subject[]>([])
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
+  const { user } = useAuth()
 
   const fetchSubjects = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
     if (!user) return
 
     const { data, error } = await supabase.from("subjects").select("*").eq("user_id", user.id)
@@ -22,17 +21,16 @@ export const useSubjects = () => {
     }
 
     setSubjects(data)
-  }, [supabase])
+  }, [supabase, user])
 
   useEffect(() => {
-    fetchSubjects()
-  }, [fetchSubjects])
+    if (user) {
+      fetchSubjects()
+    }
+  }, [user, fetchSubjects])
 
   const addSubject = useCallback(
     async (name: string) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) return
 
       const { data, error } = await supabase.from("subjects").insert({ name, user_id: user.id }).select().single()
@@ -44,14 +42,11 @@ export const useSubjects = () => {
 
       setSubjects((prevSubjects) => [...prevSubjects, data])
     },
-    [supabase],
+    [supabase, user],
   )
 
   const updateSubject = useCallback(
     async (subjectId: string, name: string) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) return
 
       const { error } = await supabase.from("subjects").update({ name }).eq("id", subjectId).eq("user_id", user.id)
@@ -65,14 +60,11 @@ export const useSubjects = () => {
         prevSubjects.map((subject) => (subject.id === subjectId ? { ...subject, name } : subject)),
       )
     },
-    [supabase],
+    [supabase, user],
   )
 
   const deleteSubject = useCallback(
     async (subjectId: string) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) return
 
       const { error } = await supabase.from("subjects").delete().eq("id", subjectId).eq("user_id", user.id)
@@ -84,7 +76,7 @@ export const useSubjects = () => {
 
       setSubjects((prevSubjects) => prevSubjects.filter((subject) => subject.id !== subjectId))
     },
-    [supabase],
+    [supabase, user],
   )
 
   return {

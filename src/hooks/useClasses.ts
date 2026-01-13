@@ -1,17 +1,16 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "./useAuth"
 import type { Class, Section } from "../types"
 
 export const useClasses = () => {
   const [classes, setClasses] = useState<Class[]>([])
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
+  const { user } = useAuth()
 
   const fetchClasses = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
     if (!user) return
 
     const { data: classesData, error: classesError } = await supabase.from("classes").select("*").eq("user_id", user.id)
@@ -37,17 +36,16 @@ export const useClasses = () => {
     }))
 
     setClasses(classesWithSections)
-  }, [supabase])
+  }, [supabase, user])
 
   useEffect(() => {
-    fetchClasses()
-  }, [fetchClasses])
+    if (user) {
+      fetchClasses()
+    }
+  }, [user, fetchClasses])
 
   const addClass = useCallback(
     async (name: string) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) return
 
       const { data, error } = await supabase.from("classes").insert({ name, user_id: user.id }).select().single()
@@ -59,14 +57,11 @@ export const useClasses = () => {
 
       setClasses((prevClasses) => [...prevClasses, { ...data, sections: [] }])
     },
-    [supabase],
+    [supabase, user],
   )
 
   const updateClass = useCallback(
     async (updatedClass: Class) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) return
 
       const { error } = await supabase
@@ -82,14 +77,11 @@ export const useClasses = () => {
 
       setClasses((prevClasses) => prevClasses.map((c) => (c.id === updatedClass.id ? updatedClass : c)))
     },
-    [supabase],
+    [supabase, user],
   )
 
   const deleteClass = useCallback(
     async (classId: string) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) return
 
       const { error } = await supabase.from("classes").delete().eq("id", classId).eq("user_id", user.id)
@@ -101,14 +93,11 @@ export const useClasses = () => {
 
       setClasses((prevClasses) => prevClasses.filter((c) => c.id !== classId))
     },
-    [supabase],
+    [supabase, user],
   )
 
   const addSection = useCallback(
     async (classId: string, sectionName: string) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) return
 
       const { data, error } = await supabase
@@ -134,14 +123,11 @@ export const useClasses = () => {
         }),
       )
     },
-    [supabase],
+    [supabase, user],
   )
 
   const updateSection = useCallback(
     async (classId: string, updatedSection: Section) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) return
 
       const { error } = await supabase
@@ -168,14 +154,11 @@ export const useClasses = () => {
         }),
       )
     },
-    [supabase],
+    [supabase, user],
   )
 
   const deleteSection = useCallback(
     async (classId: string, sectionId: string) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) return
 
       const { error } = await supabase
@@ -202,7 +185,7 @@ export const useClasses = () => {
         }),
       )
     },
-    [supabase],
+    [supabase, user],
   )
 
   return {

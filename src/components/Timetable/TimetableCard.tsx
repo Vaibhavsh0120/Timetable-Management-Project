@@ -1,5 +1,6 @@
 "use client"
 
+import { memo, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { 
@@ -25,20 +26,28 @@ interface TimetableCardProps {
   onDelete: () => void
 }
 
-export const TimetableCard = ({ timetable, onRename, onDelete }: TimetableCardProps) => {
+export const TimetableCard = memo(({ timetable, onRename, onDelete }: TimetableCardProps) => {
   const router = useRouter()
 
-  const handleOpen = () => {
+  const handleOpen = useCallback(() => {
     router.push(`/timetable/${timetable.id}`)
-  }
+  }, [router, timetable.id])
 
-  const formatDate = (dateString: string) => {
+  const formattedUpdatedAt = useMemo(() => {
     try {
-      return format(new Date(dateString), "MMM d, yyyy")
+      return format(new Date(timetable.updated_at), "MMM d, yyyy")
     } catch {
       return "Recently"
     }
-  }
+  }, [timetable.updated_at])
+
+  const formattedCreatedAt = useMemo(() => {
+    try {
+      return format(new Date(timetable.created_at), "MMM d, yyyy")
+    } catch {
+      return "Recently"
+    }
+  }, [timetable.created_at])
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-200 overflow-hidden group">
@@ -54,7 +63,7 @@ export const TimetableCard = ({ timetable, onRename, onDelete }: TimetableCardPr
                 {timetable.name}
               </h3>
               <p className="text-sm text-gray-500 mt-1">
-                Updated {formatDate(timetable.updated_at)}
+                Updated {formattedUpdatedAt}
               </p>
             </div>
           </div>
@@ -85,7 +94,7 @@ export const TimetableCard = ({ timetable, onRename, onDelete }: TimetableCardPr
         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <Clock className="w-4 h-4" />
-            <span>Created {formatDate(timetable.created_at)}</span>
+            <span>Created {formattedCreatedAt}</span>
           </div>
           <Button
             onClick={handleOpen}
@@ -100,4 +109,6 @@ export const TimetableCard = ({ timetable, onRename, onDelete }: TimetableCardPr
       </div>
     </div>
   )
-}
+})
+
+TimetableCard.displayName = "TimetableCard"

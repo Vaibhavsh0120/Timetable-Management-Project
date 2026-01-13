@@ -1,25 +1,24 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "./useAuth"
 import type { Day, TimeSlot, TimeTableEntry } from "../types"
 
 export const useTimetable = (timetableId: string) => {
   const [timeTable, setTimeTable] = useState<TimeTableEntry[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
+  const { user } = useAuth()
 
   const initializeTimeTable = useCallback(
     async (classId: string, sectionId: string, days: Day[], timeSlots: TimeSlot[]) => {
-      setIsLoading(true)
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) {
         console.error("User not authenticated")
-        setIsLoading(false)
         return
       }
+      
+      setIsLoading(true)
 
       // Check if timeSlots is empty
       if (!timeSlots || timeSlots.length === 0) {
@@ -106,20 +105,17 @@ export const useTimetable = (timetableId: string) => {
         setIsLoading(false)
       }
     },
-    [supabase, timetableId],
+    [supabase, timetableId, user],
   )
 
   const fetchTimetable = useCallback(
     async (classId: string, sectionId: string) => {
-      setIsLoading(true)
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) {
         console.error("User not authenticated")
-        setIsLoading(false)
         return
       }
+      
+      setIsLoading(true)
 
       try {
         const { data, error } = await supabase
@@ -143,7 +139,7 @@ export const useTimetable = (timetableId: string) => {
         setIsLoading(false)
       }
     },
-    [supabase, timetableId],
+    [supabase, timetableId, user],
   )
 
   const updateTeacherInTimeTable = useCallback(
@@ -155,15 +151,12 @@ export const useTimetable = (timetableId: string) => {
       timeSlotId: string,
       dayId: number,
     ) => {
-      setIsLoading(true)
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) {
         console.error("User not authenticated")
-        setIsLoading(false)
         return
       }
+      
+      setIsLoading(true)
 
       try {
         const { data, error } = await supabase
@@ -210,7 +203,7 @@ export const useTimetable = (timetableId: string) => {
         setIsLoading(false)
       }
     },
-    [supabase, fetchTimetable],
+    [supabase, fetchTimetable, user],
   )
 
   const clearTimeTable = useCallback(() => {
@@ -220,9 +213,6 @@ export const useTimetable = (timetableId: string) => {
   // Add this new function inside the useTimetable hook
   const checkTeacherConflict = useCallback(
     async (teacherId: string, classId: string, sectionId: string, timeSlotId: string, dayId: number) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) {
         console.error("User not authenticated")
         return false
@@ -248,7 +238,7 @@ export const useTimetable = (timetableId: string) => {
         return false
       }
     },
-    [supabase],
+    [supabase, user],
   )
 
   return {

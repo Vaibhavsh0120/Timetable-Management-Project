@@ -1,52 +1,55 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "./useAuth"
 import type { TimeSlot } from "../types"
 
 export const useTimeSlots = () => {
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
-  const supabase = createClient()
+  const [maxLunchSlots, setMaxLunchSlots] = useState(1)
+  const supabase = useMemo(() => createClient(), [])
+  const { user } = useAuth()
 
   const fetchTimeSlots = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
     if (!user) return
 
     try {
-      const { data, error } = await supabase.from("timeslots").select("*").eq("user_id", user.id)
+      const { data, error } = await supabase.from("timeslots").select("*").eq("user_id", user.id).order("start_time")
 
       if (error) {
         console.error("Error fetching time slots:", error)
         return
       }
 
-      // Data is already in 12-hour format from database
-      console.log("Time slots from DB:", data)
-      setTimeSlots(data)
+      setTimeSlots(data || [])
+      
+      // Load max lunch slots from localStorage (user-level default)
+      const savedMaxLunch = localStorage.getItem(`maxLunchSlots_${user.id}`)
+      if (savedMaxLunch) {
+        setMaxLunchSlots(Number.parseInt(savedMaxLunch) || 1)
+      } else {
+        setMaxLunchSlots(1) // Default to 1
+      }
     } catch (error) {
       console.error("Error fetching time slots:", error)
     }
-  }, [supabase])
+  }, [supabase, user])
 
   useEffect(() => {
-    fetchTimeSlots()
-  }, [fetchTimeSlots])
+    if (user) {
+      fetchTimeSlots()
+    }
+  }, [user, fetchTimeSlots])
 
   const addTimeSlot = useCallback(
     async (start_time: string, end_time: string) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) return
 
       try {
         // Format time to ensure consistent format (hh:mm AM/PM)
         const formattedStartTime = formatTime12Hour(start_time)
         const formattedEndTime = formatTime12Hour(end_time)
-
-        console.log("Adding time slot:", { formattedStartTime, formattedEndTime })
 
         const { data, error } = await supabase
           .from("timeslots")
@@ -64,14 +67,11 @@ export const useTimeSlots = () => {
         console.error("Error adding time slot:", error)
       }
     },
-    [supabase],
+    [supabase, user],
   )
 
   const updateTimeSlot = useCallback(
-    async (timeSlotId: string, start_time: string, end_time: string) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+    async (timeSlotId: string, start_time: string, end_time: string, is_lunch?: boolean) => {
       if (!user) return
 
       try {
@@ -79,11 +79,18 @@ export const useTimeSlots = () => {
         const formattedStartTime = formatTime12Hour(start_time)
         const formattedEndTime = formatTime12Hour(end_time)
 
-        console.log("Updating time slot:", { id: timeSlotId, formattedStartTime, formattedEndTime })
+        const updateData: { start_time: string; end_time: string; is_lunch?: boolean } = {
+          start_time: formattedStartTime,
+          end_time: formattedEndTime,
+        }
+        
+        if (is_lunch !== undefined) {
+          updateData.is_lunch = is_lunch
+        }
 
         const { error } = await supabase
           .from("timeslots")
-          .update({ start_time: formattedStartTime, end_time: formattedEndTime })
+          .update(updateData)
           .eq("id", timeSlotId)
           .eq("user_id", user.id)
 
@@ -95,7 +102,7 @@ export const useTimeSlots = () => {
         setTimeSlots((prevTimeSlots) =>
           prevTimeSlots.map((timeSlot) =>
             timeSlot.id === timeSlotId
-              ? { ...timeSlot, start_time: formattedStartTime, end_time: formattedEndTime }
+              ? { ...timeSlot, start_time: formattedStartTime, end_time: formattedEndTime, is_lunch: is_lunch !== undefined ? is_lunch : timeSlot.is_lunch }
               : timeSlot,
           ),
         )
@@ -103,14 +110,31 @@ export const useTimeSlots = () => {
         console.error("Error updating time slot:", error)
       }
     },
-    [supabase],
+    [supabase, user],
+  )
+
+  // Note: toggleLunch is now handled by useTimetableSettings hook
+  // This function is kept for backward compatibility but should not be used
+  const toggleLunch = useCallback(
+    async (timeSlotId: string, isLunch: boolean) => {
+      console.warn("toggleLunch in useTimeSlots is deprecated. Use useTimetableSettings instead.")
+      // This function is no longer used - lunch is managed per timetable in timetable_settings table
+    },
+    [],
+  )
+
+  // Note: updateMaxLunchSlots is now handled by useTimetableSettings hook
+  // This function is kept for backward compatibility
+  const updateMaxLunchSlots = useCallback(
+    (max: number) => {
+      console.warn("updateMaxLunchSlots in useTimeSlots is deprecated. Use useTimetableSettings instead.")
+      setMaxLunchSlots(max)
+    },
+    [],
   )
 
   const deleteTimeSlot = useCallback(
     async (timeSlotId: string) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) return
 
       try {
@@ -126,7 +150,7 @@ export const useTimeSlots = () => {
         console.error("Error deleting time slot:", error)
       }
     },
-    [supabase],
+    [supabase, user],
   )
 
   // Helper function to ensure consistent 12-hour time format (hh:mm AM/PM)
@@ -155,6 +179,9 @@ export const useTimeSlots = () => {
     updateTimeSlot,
     deleteTimeSlot,
     fetchTimeSlots,
+    toggleLunch,
+    maxLunchSlots,
+    setMaxLunchSlots: (max: number, timetableId?: string) => updateMaxLunchSlots(max, timetableId),
   }
 }
 

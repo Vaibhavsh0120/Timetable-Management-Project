@@ -1,17 +1,16 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "./useAuth"
 import type { Teacher } from "../types"
 
 export const useTeachers = () => {
   const [teachers, setTeachers] = useState<Teacher[]>([])
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
+  const { user } = useAuth()
 
   const fetchTeachers = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
     if (!user) return
 
     const { data, error } = await supabase.from("teachers").select("*").eq("user_id", user.id)
@@ -22,17 +21,16 @@ export const useTeachers = () => {
     }
 
     setTeachers(data)
-  }, [supabase])
+  }, [supabase, user])
 
   useEffect(() => {
-    fetchTeachers()
-  }, [fetchTeachers])
+    if (user) {
+      fetchTeachers()
+    }
+  }, [user, fetchTeachers])
 
   const addTeacher = useCallback(
     async (name: string, subject_id: string) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) return
 
       const { data, error } = await supabase
@@ -48,14 +46,11 @@ export const useTeachers = () => {
 
       setTeachers((prevTeachers) => [...prevTeachers, data])
     },
-    [supabase],
+    [supabase, user],
   )
 
   const updateTeacher = useCallback(
     async (teacherId: string, name: string, subject_id: string) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) return
 
       const { error } = await supabase
@@ -73,14 +68,11 @@ export const useTeachers = () => {
         prevTeachers.map((teacher) => (teacher.id === teacherId ? { ...teacher, name, subject_id } : teacher)),
       )
     },
-    [supabase],
+    [supabase, user],
   )
 
   const deleteTeacher = useCallback(
     async (teacherId: string) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       if (!user) return
 
       const { error } = await supabase.from("teachers").delete().eq("id", teacherId).eq("user_id", user.id)
@@ -92,7 +84,7 @@ export const useTeachers = () => {
 
       setTeachers((prevTeachers) => prevTeachers.filter((teacher) => teacher.id !== teacherId))
     },
-    [supabase],
+    [supabase, user],
   )
 
   return {

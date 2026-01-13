@@ -30,6 +30,7 @@ export type TimeSlot = {
   user_id: string  // UUID
   start_time: string
   end_time: string
+  is_lunch?: boolean  // Whether this time slot is a lunch break
 }
 
 export type Day = {
@@ -41,6 +42,17 @@ export type Timetable = {
   id: string  // UUID
   user_id: string  // UUID
   name: string
+  created_at: string
+  updated_at: string
+}
+
+export type TimetableSettings = {
+  id: string  // UUID
+  timetable_id: string  // UUID
+  user_id: string  // UUID
+  enabled_days: number[]  // Array of day IDs (1-6)
+  max_lunch_slots: number
+  lunch_slot_ids: string[]  // Array of timeslot IDs marked as lunch
   created_at: string
   updated_at: string
 }

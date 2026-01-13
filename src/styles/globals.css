@@ -75,3 +75,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Override Next.js portal positioning */
+nextjs-portal {
+  left: unset !important;
+  top: unset !important;
+}

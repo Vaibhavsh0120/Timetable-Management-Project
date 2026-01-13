@@ -123,8 +123,14 @@ export default function Signup() {
       }
 
       if (data.user) {
+        // Refresh session to ensure authentication is established
+        await supabase.auth.refreshSession()
+        
         // Add default data in background (don't wait for it)
-        addDefaultData(data.user.id).catch(console.error)
+        addDefaultData(data.user.id).catch((error) => {
+          // Silently handle errors - default data can be added later
+          console.error("Error adding default data:", error?.message || error)
+        })
         
         toast({
           title: "Account Created Successfully!",
@@ -145,6 +151,23 @@ export default function Signup() {
 
   const addDefaultData = async (userId: string) => {
     try {
+      // Ensure we have an authenticated session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session) {
+        // If no session, try to refresh it
+        const { error: refreshError } = await supabase.auth.refreshSession()
+        if (refreshError) {
+          throw new Error(`Session error: ${refreshError.message}`)
+        }
+      }
+
+      // Verify the user is authenticated
+      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
+      if (userError || !currentUser || currentUser.id !== userId) {
+        throw new Error(`Authentication error: ${userError?.message || "User not authenticated"}`)
+      }
+
       // Add default subjects
       const { data: subjectsData, error: subjectsError } = await supabase
         .from("subjects")
@@ -157,7 +180,13 @@ export default function Signup() {
         ])
         .select()
 
-      if (subjectsError) throw subjectsError
+      if (subjectsError) {
+        throw new Error(`Failed to add subjects: ${subjectsError.message}`)
+      }
+
+      if (!subjectsData || subjectsData.length === 0) {
+        throw new Error("No subjects were created")
+      }
 
       // Add default teachers
       const { error: teachersError } = await supabase.from("teachers").insert([
@@ -168,7 +197,9 @@ export default function Signup() {
         { name: "Teacher 5", subject_id: subjectsData[4].id, user_id: userId },
       ])
 
-      if (teachersError) throw teachersError
+      if (teachersError) {
+        throw new Error(`Failed to add teachers: ${teachersError.message}`)
+      }
 
       // Add default classes
       const { data: classesData, error: classesError } = await supabase
@@ -179,7 +210,13 @@ export default function Signup() {
         ])
         .select()
 
-      if (classesError) throw classesError
+      if (classesError) {
+        throw new Error(`Failed to add classes: ${classesError.message}`)
+      }
+
+      if (!classesData || classesData.length === 0) {
+        throw new Error("No classes were created")
+      }
 
       // Add default sections
       const { error: sectionsError } = await supabase.from("sections").insert([
@@ -189,7 +226,9 @@ export default function Signup() {
         { name: "Section B", class_id: classesData[1].id, user_id: userId },
       ])
 
-      if (sectionsError) throw sectionsError
+      if (sectionsError) {
+        throw new Error(`Failed to add sections: ${sectionsError.message}`)
+      }
 
       // Add default time slots
       const { error: timeSlotsError } = await supabase.from("timeslots").insert([
@@ -201,11 +240,23 @@ export default function Signup() {
         { start_time: "1:00 PM", end_time: "2:00 PM", user_id: userId },
       ])
 
-      if (timeSlotsError) throw timeSlotsError
+      if (timeSlotsError) {
+        throw new Error(`Failed to add time slots: ${timeSlotsError.message}`)
+      }
 
       console.log("Default data added successfully")
-    } catch (error) {
-      console.error("Error adding default data:", error)
+    } catch (error: any) {
+      // Log detailed error information
+      const errorMessage = error?.message || error?.toString() || "Unknown error"
+      const errorDetails = error?.details || error?.hint || ""
+      
+      console.error("Error adding default data:", {
+        message: errorMessage,
+        details: errorDetails,
+        error: error
+      })
+      
+      // Don't throw - this is a background operation that shouldn't block signup
     }
   }
 

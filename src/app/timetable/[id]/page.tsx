@@ -1,19 +1,29 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { TimetableManagement } from "@/components/TimetableManagement"
+import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import type { Timetable } from "@/types"
 
+// Lazy load the heavy component
+const TimetableManagement = dynamic(() => import("@/components/TimetableManagement").then(mod => ({ default: mod.TimetableManagement })), {
+  loading: () => (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+    </div>
+  ),
+  ssr: false
+})
+
 export default function TimetablePage() {
   const router = useRouter()
   const params = useParams()
   const { toast } = useToast()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [timetable, setTimetable] = useState<Timetable | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 

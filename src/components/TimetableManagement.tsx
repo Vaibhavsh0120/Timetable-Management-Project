@@ -15,17 +15,11 @@ import { useTeachers } from "../hooks/useTeachers"
 import { useSubjects } from "../hooks/useSubjects"
 import { useTimeSlots } from "../hooks/useTimeSlots"
 import { useTimetable } from "../hooks/useTimetable"
-import type { TimeTableEntry, TimeSlot, Day } from "../types"
+import { useTimetableSettings } from "../hooks/useTimetableSettings"
+import type { TimeTableEntry, TimeSlot } from "../types"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-const days: Day[] = [
-  { id: 1, name: "Monday" },
-  { id: 2, name: "Tuesday" },
-  { id: 3, name: "Wednesday" },
-  { id: 4, name: "Thursday" },
-  { id: 5, name: "Friday" },
-]
+import { DAYS } from "@/constants"
 
 interface TimetableManagementProps {
   timetableId: string
@@ -41,6 +35,28 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
   const [isManagingTimeSlots, setIsManagingTimeSlots] = useState(false)
   const [isManagingTeachersSubjects, setIsManagingTeachersSubjects] = useState(false)
   const hasInitializedRef = useRef<string | null>(null)
+  
+  // Use timetable settings hook instead of localStorage
+  const {
+    enabledDays,
+    maxLunchSlots,
+    lunchSlotIds,
+    updateEnabledDays,
+    updateMaxLunchSlots,
+    toggleLunchSlot,
+  } = useTimetableSettings(timetableId)
+  
+  const toggleDay = useCallback(
+    (dayId: number) => {
+      const newEnabledDays = enabledDays.includes(dayId)
+        ? enabledDays.filter((id) => id !== dayId)
+        : [...enabledDays, dayId].sort()
+      updateEnabledDays(newEnabledDays)
+    },
+    [enabledDays, updateEnabledDays],
+  )
+  
+  const filteredDays = DAYS.filter((day) => enabledDays.includes(day.id))
 
   const { classes, addClass, updateClass, deleteClass, addSection, updateSection, deleteSection, fetchClasses } =
     useClasses()
@@ -79,7 +95,7 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
       // Only initialize if we don't have entries yet (new timetable or first load)
       if (timeTableCount === 0 && Array.isArray(timeSlots)) {
         hasInitializedRef.current = sectionKey
-        initializeTimeTable(selectedClass, selectedSection, days, timeSlots)
+        initializeTimeTable(selectedClass, selectedSection, filteredDays, timeSlots)
       }
     }
   }, [
@@ -215,10 +231,13 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
         ) : (
           <TimetableGrid
             timeTable={timeTable}
-            days={days}
+            days={filteredDays}
             timeSlots={timeSlots}
             teachers={teachers}
             subjects={subjects}
+            enabledDays={enabledDays}
+            timetableId={timetableId}
+            lunchSlotIds={lunchSlotIds}
             onCellClick={handleCellClick}
           />
         ))}
@@ -287,6 +306,13 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
               updateTimeSlot={updateTimeSlot}
               deleteTimeSlot={deleteTimeSlot}
               onEditTimeSlot={(timeSlot) => setEditingTimeSlot(timeSlot)}
+              toggleLunch={toggleLunchSlot}
+              maxLunchSlots={maxLunchSlots}
+              setMaxLunchSlots={updateMaxLunchSlots}
+              enabledDays={enabledDays}
+              toggleDay={toggleDay}
+              timetableId={timetableId}
+              lunchSlotIds={lunchSlotIds}
             />
           </div>
         </DialogContent>

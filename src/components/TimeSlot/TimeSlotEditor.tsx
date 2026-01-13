@@ -10,7 +10,7 @@ import type { TimeSlot } from "../../types"
 
 interface TimeSlotEditorProps {
   timeSlot: TimeSlot | null
-  onUpdate: (timeSlotId: string, start_time: string, end_time: string) => Promise<void>
+  onUpdate: (timeSlotId: string, start_time: string, end_time: string, is_lunch?: boolean) => Promise<void>
   onClose: () => void
 }
 

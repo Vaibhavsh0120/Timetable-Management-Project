@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -13,17 +13,14 @@ import {
   Plus, 
   Calendar, 
   LogOut, 
-  Search,
-  Grid3x3,
-  Clock,
-  Users
+  Search
 } from "lucide-react"
 import type { Timetable } from "@/types"
 
 export const TimetableDashboard = () => {
   const { toast } = useToast()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const { timetables, isLoading, createTimetable, updateTimetable, deleteTimetable, fetchTimetables } = useTimetables()
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -34,7 +31,7 @@ export const TimetableDashboard = () => {
   const [renameValue, setRenameValue] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     const { error } = await supabase.auth.signOut()
     if (error) {
       toast({
@@ -46,7 +43,7 @@ export const TimetableDashboard = () => {
       router.push("/login")
       router.refresh()
     }
-  }
+  }, [supabase, toast, router])
 
   const handleCreateTimetable = async () => {
     if (!newTimetableName.trim()) {
@@ -66,6 +63,8 @@ export const TimetableDashboard = () => {
       })
       setIsCreateDialogOpen(false)
       setNewTimetableName("")
+      // Refresh timetables to ensure UI is updated
+      await fetchTimetables()
       // Navigate to the timetable editor
       router.push(`/timetable/${timetable.id}`)
     } catch (error: any) {
@@ -74,6 +73,8 @@ export const TimetableDashboard = () => {
         description: error.message || "Failed to create timetable",
         variant: "destructive",
       })
+      setIsCreateDialogOpen(false)
+      setNewTimetableName("")
     }
   }
 
@@ -108,20 +109,44 @@ export const TimetableDashboard = () => {
   const handleDeleteTimetable = async () => {
     if (!selectedTimetable) return
 
+    const timetableIdToDelete = selectedTimetable.id
+    
+    // Close dialog immediately to prevent blocking
+    setIsDeleteDialogOpen(false)
+    setSelectedTimetable(null)
+
+    // Show loading toast
+    const loadingToast = toast({
+      title: "Deleting Timetable",
+      description: "Please wait while we delete the timetable and all its data...",
+    })
+
     try {
-      await deleteTimetable(selectedTimetable.id)
+      await deleteTimetable(timetableIdToDelete)
+      
+      // Dismiss loading toast
+      loadingToast.dismiss()
+      
       toast({
         title: "Success",
         description: "Timetable deleted successfully!",
       })
-      setIsDeleteDialogOpen(false)
-      setSelectedTimetable(null)
+      
+      // Refresh the timetables list to ensure UI is updated
+      // This will also reset the loading state properly
+      await fetchTimetables()
     } catch (error: any) {
+      // Dismiss loading toast
+      loadingToast.dismiss()
+      
       toast({
         title: "Error",
         description: error.message || "Failed to delete timetable",
         variant: "destructive",
       })
+      
+      // Ensure we refetch even on error to reset state
+      await fetchTimetables()
     }
   }
 
@@ -136,9 +161,13 @@ export const TimetableDashboard = () => {
     setIsDeleteDialogOpen(true)
   }
 
-  const filteredTimetables = timetables.filter((timetable) =>
-    timetable.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredTimetables = useMemo(() => {
+    if (!searchQuery.trim()) return timetables
+    const query = searchQuery.toLowerCase()
+    return timetables.filter((timetable) =>
+      timetable.name.toLowerCase().includes(query)
+    )
+  }, [timetables, searchQuery])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -169,49 +198,6 @@ export const TimetableDashboard = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Timetables</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{timetables.length}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Grid3x3 className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{timetables.length}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <Clock className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">This Month</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">
-                  {timetables.filter(t => {
-                    const created = new Date(t.created_at)
-                    const now = new Date()
-                    return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear()
-                  }).length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="flex-1 relative">
@@ -225,7 +211,8 @@ export const TimetableDashboard = () => {
           </div>
           <Button
             onClick={() => setIsCreateDialogOpen(true)}
-            className="h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 gap-2"
+            disabled={isLoading}
+            className="h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-5 h-5" />
             Create New Timetable
