@@ -3,36 +3,48 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
-import { Mail, Lock, ArrowRight, Calendar, CheckCircle2, XCircle } from "lucide-react"
+import { Lock, ArrowRight, Calendar, CheckCircle2, XCircle } from "lucide-react"
 
-export default function Signup() {
-  const [email, setEmail] = useState("")
+export default function ResetPassword() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [success, setSuccess] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   useEffect(() => {
-    const checkUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (user) {
-        router.push("/")
+    // Check if user is authenticated (they should be after clicking the reset link)
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        // If no user, check if there's a code in the URL (might be direct link)
+        const code = searchParams.get("code")
+        if (!code) {
+          toast({
+            title: "Invalid Link",
+            description: "This password reset link is invalid or has expired. Please request a new one.",
+            variant: "destructive",
+          })
+          // Redirect to forgot password after a delay
+          setTimeout(() => {
+            router.push("/forgot-password")
+          }, 3000)
+        }
       }
     }
-    checkUser()
-  }, [supabase, router])
+    checkAuth()
+  }, [searchParams, router, supabase])
 
   // Password validation
   const getPasswordStrength = (pwd: string) => {
@@ -59,10 +71,10 @@ export default function Signup() {
   const passwordStrength = getPasswordStrength(password)
   const passwordsMatch = password && confirmPassword && password === confirmPassword
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!email || !password || !confirmPassword) {
+    if (!password || !confirmPassword) {
       toast({
         title: "Validation Error",
         description: "Please fill in all fields",
@@ -92,17 +104,13 @@ export default function Signup() {
     setLoading(true)
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+      const { error } = await supabase.auth.updateUser({
+        password: password,
       })
 
       if (error) {
         toast({
-          title: "Signup Failed",
+          title: "Error",
           description: error.message,
           variant: "destructive",
         })
@@ -110,91 +118,56 @@ export default function Signup() {
         return
       }
 
-      if (data.user) {
-        // Add default data in background (don't wait for it)
-        addDefaultData(data.user.id).catch(console.error)
-        
-        toast({
-          title: "Account Created Successfully!",
-          description: "Please check your email to verify your account before signing in.",
-        })
+      setSuccess(true)
+      toast({
+        title: "Password Updated!",
+        description: "Your password has been successfully updated.",
+      })
+
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
         router.push("/login")
-      }
+      }, 2000)
     } catch (error: any) {
-      console.error("Error during signup:", error)
+      console.error("Error resetting password:", error)
       toast({
         title: "Error",
-        description: error?.message || "An error occurred during signup. Please try again.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
       setLoading(false)
     }
   }
 
-  const addDefaultData = async (userId: string) => {
-    try {
-      // Add default subjects
-      const { data: subjectsData, error: subjectsError } = await supabase
-        .from("subjects")
-        .insert([
-          { name: "Mathematics", user_id: userId },
-          { name: "Physics", user_id: userId },
-          { name: "Chemistry", user_id: userId },
-          { name: "Biology", user_id: userId },
-          { name: "English", user_id: userId },
-        ])
-        .select()
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg mb-4">
+              <CheckCircle2 className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Password Updated!</h1>
+            <p className="text-gray-600">Your password has been successfully changed</p>
+          </div>
 
-      if (subjectsError) throw subjectsError
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 space-y-6">
+            <div className="space-y-4 text-center">
+              <p className="text-gray-600">
+                You can now sign in with your new password.
+              </p>
+            </div>
 
-      // Add default teachers
-      const { error: teachersError } = await supabase.from("teachers").insert([
-        { name: "Teacher 1", subject_id: subjectsData[0].id, user_id: userId },
-        { name: "Teacher 2", subject_id: subjectsData[1].id, user_id: userId },
-        { name: "Teacher 3", subject_id: subjectsData[2].id, user_id: userId },
-        { name: "Teacher 4", subject_id: subjectsData[3].id, user_id: userId },
-        { name: "Teacher 5", subject_id: subjectsData[4].id, user_id: userId },
-      ])
-
-      if (teachersError) throw teachersError
-
-      // Add default classes
-      const { data: classesData, error: classesError } = await supabase
-        .from("classes")
-        .insert([
-          { name: "Class 1", user_id: userId },
-          { name: "Class 2", user_id: userId },
-        ])
-        .select()
-
-      if (classesError) throw classesError
-
-      // Add default sections
-      const { error: sectionsError } = await supabase.from("sections").insert([
-        { name: "Section A", class_id: classesData[0].id, user_id: userId },
-        { name: "Section B", class_id: classesData[0].id, user_id: userId },
-        { name: "Section A", class_id: classesData[1].id, user_id: userId },
-        { name: "Section B", class_id: classesData[1].id, user_id: userId },
-      ])
-
-      if (sectionsError) throw sectionsError
-
-      // Add default time slots
-      const { error: timeSlotsError } = await supabase.from("timeslots").insert([
-        { start_time: "8:00 AM", end_time: "9:00 AM", user_id: userId },
-        { start_time: "9:00 AM", end_time: "10:00 AM", user_id: userId },
-        { start_time: "10:00 AM", end_time: "11:00 AM", user_id: userId },
-        { start_time: "11:00 AM", end_time: "12:00 PM", user_id: userId },
-        { start_time: "12:00 PM", end_time: "1:00 PM", user_id: userId },
-        { start_time: "1:00 PM", end_time: "2:00 PM", user_id: userId },
-      ])
-
-      if (timeSlotsError) throw timeSlotsError
-
-      console.log("Default data added successfully")
-    } catch (error) {
-      console.error("Error adding default data:", error)
-    }
+            <Link href="/login" className="block">
+              <Button className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold">
+                Go to Login
+                <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -205,45 +178,24 @@ export default function Signup() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg mb-4">
             <Calendar className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
-          <p className="text-gray-600">Start managing your timetable today</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Reset Password</h1>
+          <p className="text-gray-600">Enter your new password below</p>
         </div>
 
-        {/* Signup Card */}
+        {/* Reset Password Card */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 space-y-6">
-          <form onSubmit={handleSignup} className="space-y-5">
-            {/* Email Field */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-700 font-medium">
-                Email Address
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 h-11"
-                  required
-                  disabled={loading}
-                  autoComplete="email"
-                />
-              </div>
-            </div>
-
+          <form onSubmit={handleResetPassword} className="space-y-5">
             {/* Password Field */}
             <div className="space-y-2">
               <Label htmlFor="password" className="text-gray-700 font-medium">
-                Password
+                New Password
               </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Create a strong password"
+                  placeholder="Enter your new password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10 h-11"
@@ -292,40 +244,6 @@ export default function Signup() {
                       </span>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-1 text-xs">
-                    <div className={`flex items-center gap-1 ${passwordStrength.checks.length ? "text-gray-600" : "text-gray-400"}`}>
-                      {passwordStrength.checks.length ? (
-                        <CheckCircle2 className="w-3 h-3" />
-                      ) : (
-                        <XCircle className="w-3 h-3" />
-                      )}
-                      <span>8+ characters</span>
-                    </div>
-                    <div className={`flex items-center gap-1 ${passwordStrength.checks.uppercase ? "text-green-600" : "text-gray-400"}`}>
-                      {passwordStrength.checks.uppercase ? (
-                        <CheckCircle2 className="w-3 h-3" />
-                      ) : (
-                        <XCircle className="w-3 h-3" />
-                      )}
-                      <span>Uppercase</span>
-                    </div>
-                    <div className={`flex items-center gap-1 ${passwordStrength.checks.lowercase ? "text-green-600" : "text-gray-400"}`}>
-                      {passwordStrength.checks.lowercase ? (
-                        <CheckCircle2 className="w-3 h-3" />
-                      ) : (
-                        <XCircle className="w-3 h-3" />
-                      )}
-                      <span>Lowercase</span>
-                    </div>
-                    <div className={`flex items-center gap-1 ${passwordStrength.checks.number ? "text-green-600" : "text-gray-400"}`}>
-                      {passwordStrength.checks.number ? (
-                        <CheckCircle2 className="w-3 h-3" />
-                      ) : (
-                        <XCircle className="w-3 h-3" />
-                      )}
-                      <span>Number</span>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
@@ -333,14 +251,14 @@ export default function Signup() {
             {/* Confirm Password Field */}
             <div className="space-y-2">
               <Label htmlFor="confirmPassword" className="text-gray-700 font-medium">
-                Confirm Password
+                Confirm New Password
               </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm your password"
+                  placeholder="Confirm your new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className={`pl-10 pr-10 h-11 ${
@@ -405,32 +323,18 @@ export default function Signup() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Creating account...
+                  Updating password...
                 </span>
               ) : (
                 <span className="flex items-center justify-center">
-                  Create Account
+                  Update Password
                   <ArrowRight className="ml-2 w-4 h-4" />
                 </span>
               )}
             </Button>
           </form>
-
-          {/* Sign In Link */}
-          <div className="pt-4 border-t border-gray-200">
-            <p className="text-center text-sm text-gray-600">
-              Already have an account?{" "}
-              <Link
-                href="/login"
-                className="text-blue-600 hover:text-blue-700 font-semibold hover:underline transition-colors"
-              >
-                Sign in
-              </Link>
-            </p>
-          </div>
         </div>
       </div>
     </div>
   )
 }
-

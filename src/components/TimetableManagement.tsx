@@ -20,7 +20,7 @@ import type { TimeTableEntry, TimeSlot, Day } from "../types"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@/lib/supabase/client"
 
 const days: Day[] = [
   { id: 1, name: "Monday" },
@@ -33,7 +33,7 @@ const days: Day[] = [
 export const TimetableManagement = () => {
   const { toast } = useToast()
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
   const [selectedClass, setSelectedClass] = useState<string | null>(null)
   const [selectedSection, setSelectedSection] = useState<string | null>(null)
   const [isManagingClasses, setIsManagingClasses] = useState(false)

@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@/lib/supabase/client"
 import type { Teacher } from "../types"
 
 export const useTeachers = () => {
   const [teachers, setTeachers] = useState<Teacher[]>([])
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
 
   const fetchTeachers = useCallback(async () => {
     const {

@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@/lib/supabase/client"
 import type { Day, TimeSlot, TimeTableEntry } from "../types"
 
 export const useTimetable = () => {
   const [timeTable, setTimeTable] = useState<TimeTableEntry[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
 
   const initializeTimeTable = useCallback(
     async (classId: string, sectionId: string, days: Day[], timeSlots: TimeSlot[]) => {
