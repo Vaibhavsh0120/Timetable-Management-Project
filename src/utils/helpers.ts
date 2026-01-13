@@ -3,6 +3,7 @@ import type { TimeTableEntry, Day, TimeSlot, Teacher, Subject } from "../types"
 export const generateEmptyTimetable = (
   classId: string,
   sectionId: string,
+  timetableId: string,
   days: Day[],
   timeSlots: TimeSlot[],
 ): TimeTableEntry[] => {
@@ -13,6 +14,7 @@ export const generateEmptyTimetable = (
       emptyTimetable.push({
         id: `${classId}-${sectionId}-${day.id}-${slot.id}`,
         user_id: "", // This should be set when creating the actual entry
+        timetable_id: timetableId,
         class_id: classId,
         section_id: sectionId,
         teacher_id: null,

@@ -7,7 +7,6 @@ import type { TimeSlot } from "../types"
 
 export const useTimeSlots = () => {
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
-  const [maxLunchSlots, setMaxLunchSlots] = useState(1)
   const supabase = useMemo(() => createClient(), [])
   const { user } = useAuth()
 
@@ -23,14 +22,6 @@ export const useTimeSlots = () => {
       }
 
       setTimeSlots(data || [])
-      
-      // Load max lunch slots from localStorage (user-level default)
-      const savedMaxLunch = localStorage.getItem(`maxLunchSlots_${user.id}`)
-      if (savedMaxLunch) {
-        setMaxLunchSlots(Number.parseInt(savedMaxLunch) || 1)
-      } else {
-        setMaxLunchSlots(1) // Default to 1
-      }
     } catch (error) {
       console.error("Error fetching time slots:", error)
     }
@@ -113,26 +104,6 @@ export const useTimeSlots = () => {
     [supabase, user],
   )
 
-  // Note: toggleLunch is now handled by useTimetableSettings hook
-  // This function is kept for backward compatibility but should not be used
-  const toggleLunch = useCallback(
-    async (timeSlotId: string, isLunch: boolean) => {
-      console.warn("toggleLunch in useTimeSlots is deprecated. Use useTimetableSettings instead.")
-      // This function is no longer used - lunch is managed per timetable in timetable_settings table
-    },
-    [],
-  )
-
-  // Note: updateMaxLunchSlots is now handled by useTimetableSettings hook
-  // This function is kept for backward compatibility
-  const updateMaxLunchSlots = useCallback(
-    (max: number) => {
-      console.warn("updateMaxLunchSlots in useTimeSlots is deprecated. Use useTimetableSettings instead.")
-      setMaxLunchSlots(max)
-    },
-    [],
-  )
-
   const deleteTimeSlot = useCallback(
     async (timeSlotId: string) => {
       if (!user) return
@@ -179,9 +150,6 @@ export const useTimeSlots = () => {
     updateTimeSlot,
     deleteTimeSlot,
     fetchTimeSlots,
-    toggleLunch,
-    maxLunchSlots,
-    setMaxLunchSlots: (max: number, timetableId?: string) => updateMaxLunchSlots(max, timetableId),
   }
 }
 
