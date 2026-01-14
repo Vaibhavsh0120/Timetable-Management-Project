@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useToast } from "@/components/ui/use-toast"
 import { useTimetables } from "@/hooks/useTimetables"
 import { TimetableCard } from "./Timetable/TimetableCard"
+import { ThemeToggle } from "@/components/theme/ThemeToggle"
 import { 
   Plus, 
   Calendar, 
@@ -170,28 +171,27 @@ export const TimetableDashboard = () => {
   }, [timetables, searchQuery])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
+      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg">
-                <Calendar className="w-6 h-6 text-white" />
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg border bg-card">
+                <Calendar className="w-5 h-5 text-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Timetable Manager</h1>
-                <p className="text-xs text-gray-500">Manage your schedules</p>
+                <h1 className="text-lg font-semibold text-foreground">Timetable Manager</h1>
+                <p className="text-xs text-muted-foreground">Manage your schedules</p>
               </div>
             </div>
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              className="gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              Logout
-            </Button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button onClick={handleLogout} variant="outline" className="gap-2">
+                <LogOut className="w-4 h-4" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -201,7 +201,7 @@ export const TimetableDashboard = () => {
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               placeholder="Search timetables..."
               value={searchQuery}
@@ -212,7 +212,7 @@ export const TimetableDashboard = () => {
           <Button
             onClick={() => setIsCreateDialogOpen(true)}
             disabled={isLoading}
-            className="h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-11 gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-5 h-5" />
             Create New Timetable
@@ -223,17 +223,17 @@ export const TimetableDashboard = () => {
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="flex flex-col items-center gap-4">
-              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-gray-600">Loading timetables...</p>
+              <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-muted-foreground">Loading timetables...</p>
             </div>
           </div>
         ) : filteredTimetables.length === 0 ? (
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
+          <div className="rounded-2xl border bg-card p-12 text-center">
             {searchQuery ? (
               <>
-                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No timetables found</h3>
-                <p className="text-gray-600 mb-6">Try adjusting your search query</p>
+                <Calendar className="w-16 h-16 text-muted mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-foreground mb-2">No timetables found</h3>
+                <p className="text-muted-foreground mb-6">Try adjusting your search query</p>
                 <Button
                   onClick={() => setSearchQuery("")}
                   variant="outline"
@@ -243,12 +243,12 @@ export const TimetableDashboard = () => {
               </>
             ) : (
               <>
-                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No timetables yet</h3>
-                <p className="text-gray-600 mb-6">Create your first timetable to get started</p>
+                <Calendar className="w-16 h-16 text-muted mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-foreground mb-2">No timetables yet</h3>
+                <p className="text-muted-foreground mb-6">Create your first timetable to get started</p>
                 <Button
                   onClick={() => setIsCreateDialogOpen(true)}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white gap-2"
+                  className="gap-2"
                 >
                   <Plus className="w-5 h-5" />
                   Create Timetable
@@ -302,7 +302,6 @@ export const TimetableDashboard = () => {
                 </Button>
                 <Button
                   onClick={handleCreateTimetable}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                 >
                   Create
                 </Button>
@@ -345,7 +344,6 @@ export const TimetableDashboard = () => {
                 </Button>
                 <Button
                   onClick={handleRenameTimetable}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                 >
                   Save
                 </Button>

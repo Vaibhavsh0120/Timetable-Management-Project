@@ -10,6 +10,7 @@ import { TeacherSubjectManager } from "./TeacherSubject/TeacherSubjectManager"
 import { TimeSlotManager } from "./TimeSlot/TimeSlotManager"
 import { TimeSlotEditor } from "./TimeSlot/TimeSlotEditor"
 import { TimetableGrid } from "./Timetable/TimetableGrid"
+import { TimetableSettingsDialog } from "./Timetable/TimetableSettingsDialog"
 import { useClasses } from "../hooks/useClasses"
 import { useTeachers } from "../hooks/useTeachers"
 import { useSubjects } from "../hooks/useSubjects"
@@ -34,6 +35,7 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
   const [editingTimeSlot, setEditingTimeSlot] = useState<TimeSlot | null>(null)
   const [isManagingTimeSlots, setIsManagingTimeSlots] = useState(false)
   const [isManagingTeachersSubjects, setIsManagingTeachersSubjects] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const hasInitializedRef = useRef<string | null>(null)
   
   // Use timetable settings hook instead of localStorage
@@ -58,11 +60,10 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
   
   const filteredDays = DAYS.filter((day) => enabledDays.includes(day.id))
 
-  const { classes, addClass, updateClass, deleteClass, addSection, updateSection, deleteSection, fetchClasses } =
-    useClasses()
-  const { teachers, addTeacher, updateTeacher, deleteTeacher, fetchTeachers } = useTeachers()
-  const { subjects, addSubject, updateSubject, deleteSubject, fetchSubjects } = useSubjects()
-  const { timeSlots, addTimeSlot, updateTimeSlot, deleteTimeSlot, fetchTimeSlots } = useTimeSlots()
+  const { classes, addClass, updateClass, deleteClass, addSection, updateSection, deleteSection } = useClasses()
+  const { teachers, addTeacher, updateTeacher, deleteTeacher } = useTeachers()
+  const { subjects, addSubject, updateSubject, deleteSubject } = useSubjects()
+  const { timeSlots, addTimeSlot, updateTimeSlot, deleteTimeSlot } = useTimeSlots()
   const {
     timeTable,
     isLoading,
@@ -73,12 +74,12 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
     checkTeacherConflict,
   } = useTimetable(timetableId)
 
+  // Listen for header gear click (page header dispatches a custom event)
   useEffect(() => {
-    fetchClasses()
-    fetchTeachers()
-    fetchSubjects()
-    fetchTimeSlots()
-  }, [fetchClasses, fetchTeachers, fetchSubjects, fetchTimeSlots])
+    const handler = () => setIsSettingsOpen(true)
+    window.addEventListener("timetable:open-settings", handler as EventListener)
+    return () => window.removeEventListener("timetable:open-settings", handler as EventListener)
+  }, [])
 
   // Initialize timetable when time slots become available after section is selected
   useEffect(() => {
@@ -306,18 +307,23 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
               updateTimeSlot={updateTimeSlot}
               deleteTimeSlot={deleteTimeSlot}
               onEditTimeSlot={(timeSlot) => setEditingTimeSlot(timeSlot)}
-              toggleLunch={toggleLunchSlot}
-              maxLunchSlots={maxLunchSlots}
-              setMaxLunchSlots={updateMaxLunchSlots}
-              enabledDays={enabledDays}
-              toggleDay={toggleDay}
-              timetableId={timetableId}
-              lunchSlotIds={lunchSlotIds}
             />
           </div>
         </DialogContent>
       </Dialog>
       <TimeSlotEditor timeSlot={editingTimeSlot} onUpdate={updateTimeSlot} onClose={() => setEditingTimeSlot(null)} />
+
+      <TimetableSettingsDialog
+        open={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+        enabledDays={enabledDays}
+        onToggleDay={toggleDay}
+        maxLunchSlots={maxLunchSlots}
+        onChangeMaxLunchSlots={(value) => updateMaxLunchSlots(value)}
+        lunchSlotIds={lunchSlotIds}
+        onToggleLunchSlot={(timeSlotId, nextIsLunch) => toggleLunchSlot(timeSlotId, nextIsLunch)}
+        timeSlots={timeSlots}
+      />
       <Dialog open={isManagingTeachersSubjects} onOpenChange={setIsManagingTeachersSubjects}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>

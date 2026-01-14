@@ -5,7 +5,8 @@ import { useRouter, useParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { ThemeToggle } from "@/components/theme/ThemeToggle"
+import { ArrowLeft, Loader2, Settings } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import type { Timetable } from "@/types"
 
@@ -98,10 +99,10 @@ export default function TimetablePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
-          <p className="text-gray-600">Loading timetable...</p>
+          <Loader2 className="w-12 h-12 text-primary animate-spin" />
+          <p className="text-muted-foreground">Loading timetable...</p>
         </div>
       </div>
     )
@@ -112,8 +113,8 @@ export default function TimetablePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-gray-200">
+    <div className="min-h-screen bg-background">
+      <div className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4 h-16">
             <Button
@@ -125,7 +126,21 @@ export default function TimetablePage() {
               Back to Dashboard
             </Button>
             <div className="h-6 w-px bg-gray-300" />
-            <h1 className="text-xl font-semibold text-gray-900">{timetable.name}</h1>
+            <h1 className="text-xl font-semibold text-foreground flex-1 truncate">{timetable.name}</h1>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  // handled inside TimetableManagement (gear opens settings)
+                  window.dispatchEvent(new CustomEvent("timetable:open-settings"))
+                }}
+                aria-label="Timetable settings"
+              >
+                <Settings className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>

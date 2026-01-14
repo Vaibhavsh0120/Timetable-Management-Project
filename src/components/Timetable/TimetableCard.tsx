@@ -50,19 +50,19 @@ export const TimetableCard = memo(({ timetable, onRename, onDelete }: TimetableC
   }, [timetable.created_at])
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-200 overflow-hidden group">
+    <div className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden group">
       <div className="p-6">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-white" />
+            <div className="flex-shrink-0 w-12 h-12 rounded-lg border bg-background flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-foreground" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+              <h3 className="text-lg font-semibold text-foreground truncate">
                 {timetable.name}
               </h3>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Updated {formattedUpdatedAt}
               </p>
             </div>
@@ -82,7 +82,7 @@ export const TimetableCard = memo(({ timetable, onRename, onDelete }: TimetableC
                 <Edit2 className="w-4 h-4 mr-2" />
                 Rename
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={onDelete} className="text-red-600">
+              <DropdownMenuItem onClick={onDelete} className="text-destructive">
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete
               </DropdownMenuItem>
@@ -91,8 +91,8 @@ export const TimetableCard = memo(({ timetable, onRename, onDelete }: TimetableC
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-          <div className="flex items-center gap-2 text-sm text-gray-500">
+        <div className="flex items-center justify-between pt-4 border-t">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="w-4 h-4" />
             <span>Created {formattedCreatedAt}</span>
           </div>
@@ -100,7 +100,7 @@ export const TimetableCard = memo(({ timetable, onRename, onDelete }: TimetableC
             onClick={handleOpen}
             variant="ghost"
             size="sm"
-            className="gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+            className="gap-2"
           >
             Open
             <ArrowRight className="w-4 h-4" />

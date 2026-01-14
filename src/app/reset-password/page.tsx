@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
+import { ThemeToggle } from "@/components/theme/ThemeToggle"
 import { Lock, ArrowRight, Calendar, CheckCircle2, XCircle } from "lucide-react"
 
 function ResetPasswordForm() {
@@ -141,25 +142,28 @@ function ResetPasswordForm() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-md">
+          <div className="flex justify-end mb-3">
+            <ThemeToggle />
+          </div>
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg mb-4">
-              <CheckCircle2 className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl border bg-card mb-4">
+              <CheckCircle2 className="w-7 h-7 text-foreground" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Password Updated!</h1>
-            <p className="text-gray-600">Your password has been successfully changed</p>
+            <h1 className="text-3xl font-semibold text-foreground mb-2">Password updated</h1>
+            <p className="text-muted-foreground">Your password has been successfully changed</p>
           </div>
 
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 space-y-6">
+          <div className="rounded-2xl border bg-card p-8 space-y-6">
             <div className="space-y-4 text-center">
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 You can now sign in with your new password.
               </p>
             </div>
 
             <Link href="/login" className="block">
-              <Button className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold">
+              <Button className="w-full h-11 font-semibold">
                 Go to Login
                 <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
@@ -171,27 +175,30 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
+        <div className="flex justify-end mb-3">
+          <ThemeToggle />
+        </div>
         {/* Logo/Brand Section */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg mb-4">
-            <Calendar className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl border bg-card mb-4">
+            <Calendar className="w-7 h-7 text-foreground" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Reset Password</h1>
-          <p className="text-gray-600">Enter your new password below</p>
+          <h1 className="text-3xl font-semibold text-foreground mb-2">Reset password</h1>
+          <p className="text-muted-foreground">Enter your new password below</p>
         </div>
 
         {/* Reset Password Card */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8 space-y-6">
+        <div className="rounded-2xl border bg-card p-8 space-y-6">
           <form onSubmit={handleResetPassword} className="space-y-5">
             {/* Password Field */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-gray-700 font-medium">
+              <Label htmlFor="password" className="font-medium">
                 New Password
               </Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -206,7 +213,7 @@ function ResetPasswordForm() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
                 >
                   {showPassword ? (
@@ -226,7 +233,7 @@ function ResetPasswordForm() {
               {password && (
                 <div className="space-y-2 pt-2">
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                       <div
                         className={`h-full transition-all duration-300 ${
                           passwordStrength.strength <= 2
@@ -239,7 +246,7 @@ function ResetPasswordForm() {
                       />
                     </div>
                     {passwordStrength.label && (
-                      <span className="text-xs font-medium text-gray-600">
+                      <span className="text-xs font-medium text-muted-foreground">
                         {passwordStrength.label}
                       </span>
                     )}
@@ -250,11 +257,11 @@ function ResetPasswordForm() {
 
             {/* Confirm Password Field */}
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-gray-700 font-medium">
+              <Label htmlFor="confirmPassword" className="font-medium">
                 Confirm New Password
               </Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
@@ -275,7 +282,7 @@ function ResetPasswordForm() {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
                 >
                   {showConfirmPassword ? (
@@ -314,7 +321,7 @@ function ResetPasswordForm() {
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+              className="w-full h-11 font-semibold"
               disabled={loading || !passwordsMatch || passwordStrength.strength < 2}
             >
               {loading ? (
@@ -342,14 +349,17 @@ function ResetPasswordForm() {
 export default function ResetPassword() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-md">
+          <div className="flex justify-end mb-3">
+            <ThemeToggle />
+          </div>
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg mb-4">
-              <Calendar className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl border bg-card mb-4">
+              <Calendar className="w-7 h-7 text-foreground" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Reset Password</h1>
-            <p className="text-gray-600">Loading...</p>
+            <h1 className="text-3xl font-semibold text-foreground mb-2">Reset password</h1>
+            <p className="text-muted-foreground">Loading...</p>
           </div>
         </div>
       </div>

@@ -311,6 +311,49 @@ WHERE schemaname = 'public'
 ORDER BY tablename, policyname;
 ```
 
+## Step 11: (Recommended) Persist Theme Preference (Light/Dark/System)
+
+To store the user’s theme preference globally (so it works across devices), create a `user_preferences` table.
+
+```sql
+-- Create user_preferences table
+CREATE TABLE IF NOT EXISTS public.user_preferences (
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  theme text NOT NULL DEFAULT 'system' CHECK (theme IN ('system','light','dark')),
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  CONSTRAINT user_preferences_pkey PRIMARY KEY (user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_preferences_user_id ON public.user_preferences(user_id);
+
+-- Enable RLS
+ALTER TABLE public.user_preferences ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Users can view their own preferences
+CREATE POLICY "Users can view their own preferences"
+  ON public.user_preferences FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Policy: Users can insert their own preferences
+CREATE POLICY "Users can insert their own preferences"
+  ON public.user_preferences FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Policy: Users can update their own preferences
+CREATE POLICY "Users can update their own preferences"
+  ON public.user_preferences FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Auto-update updated_at timestamp
+DROP TRIGGER IF EXISTS update_user_preferences_updated_at ON public.user_preferences;
+CREATE TRIGGER update_user_preferences_updated_at
+  BEFORE UPDATE ON public.user_preferences
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+```
+
 ## Troubleshooting
 
 ### If you get "constraint does not exist" error:
