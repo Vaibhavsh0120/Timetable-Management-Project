@@ -15,7 +15,12 @@ import {
 type ThemeChoice = "system" | "light" | "dark"
 
 export function ThemeToggle() {
+  const [mounted, setMounted] = React.useState(false)
   const { theme, setTheme } = useTheme()
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const current = (theme ?? "system") as ThemeChoice
 
@@ -24,6 +29,14 @@ export function ThemeToggle() {
     if (current === "dark") return Moon
     return Monitor
   }, [current])
+
+  if (!mounted) {
+    return (
+      <Button variant="ghost" size="icon" aria-label="Theme">
+        <Monitor className="h-5 w-5" />
+      </Button>
+    )
+  }
 
   return (
     <DropdownMenu>
