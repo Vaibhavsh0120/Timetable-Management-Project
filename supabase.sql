@@ -56,30 +56,24 @@ CREATE TABLE public.timetable_settings (
   CONSTRAINT timetable_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.timetableentries (
-   id uuid NOT NULL DEFAULT gen_random_uuid(),
-   user_id uuid NOT NULL,
-   timetable_id uuid NOT NULL,
-   class_id uuid NOT NULL,
-   section_id uuid NOT NULL,
-   teacher_id uuid,
-   subject_id uuid,
-   time_slot_id uuid NOT NULL,
-   day_id integer NOT NULL,
-   CONSTRAINT timetableentries_pkey PRIMARY KEY (id),
-   CONSTRAINT timetableentries_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
-   CONSTRAINT timetableentries_timetable_id_fkey FOREIGN KEY (timetable_id) REFERENCES public.timetables(id),
-   CONSTRAINT timetableentries_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id),
-   CONSTRAINT timetableentries_section_id_fkey FOREIGN KEY (section_id) REFERENCES public.sections(id),
-   CONSTRAINT timetableentries_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.teachers(id),
-   CONSTRAINT timetableentries_subject_id_fkey FOREIGN KEY (subject_id) REFERENCES public.subjects(id),
-   CONSTRAINT timetableentries_time_slot_id_fkey FOREIGN KEY (time_slot_id) REFERENCES public.timeslots(id)
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  timetable_id uuid NOT NULL,
+  class_id uuid NOT NULL,
+  section_id uuid NOT NULL,
+  teacher_id uuid,
+  subject_id uuid,
+  time_slot_id uuid NOT NULL,
+  day_id integer NOT NULL,
+  CONSTRAINT timetableentries_pkey PRIMARY KEY (id),
+  CONSTRAINT timetableentries_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT timetableentries_timetable_id_fkey FOREIGN KEY (timetable_id) REFERENCES public.timetables(id),
+  CONSTRAINT timetableentries_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id),
+  CONSTRAINT timetableentries_section_id_fkey FOREIGN KEY (section_id) REFERENCES public.sections(id),
+  CONSTRAINT timetableentries_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.teachers(id),
+  CONSTRAINT timetableentries_subject_id_fkey FOREIGN KEY (subject_id) REFERENCES public.subjects(id),
+  CONSTRAINT timetableentries_time_slot_id_fkey FOREIGN KEY (time_slot_id) REFERENCES public.timeslots(id)
 );
-
--- Indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_timetableentries_timetable_id ON public.timetableentries(timetable_id);
-CREATE INDEX IF NOT EXISTS idx_timetableentries_user_timetable ON public.timetableentries(user_id, timetable_id);
-CREATE INDEX IF NOT EXISTS idx_timetableentries_class_section ON public.timetableentries(class_id, section_id);
-CREATE INDEX IF NOT EXISTS idx_timetableentries_day_timeslot ON public.timetableentries(day_id, time_slot_id);
 CREATE TABLE public.timetables (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
@@ -88,12 +82,4 @@ CREATE TABLE public.timetables (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT timetables_pkey PRIMARY KEY (id),
   CONSTRAINT timetables_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
-);
-CREATE TABLE public.user_preferences (
-  user_id uuid NOT NULL,
-  theme text NOT NULL DEFAULT 'system'::text CHECK (theme = ANY (ARRAY['system'::text, 'light'::text, 'dark'::text])),
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  updated_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT user_preferences_pkey PRIMARY KEY (user_id),
-  CONSTRAINT user_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );

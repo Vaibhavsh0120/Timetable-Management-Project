@@ -145,8 +145,8 @@ export const useTimetable = (timetableId: string) => {
 
     const updateTeacherInTimeTable = useCallback(
     async (
-      teacherId: string,
-      subjectId: string,
+      teacherId: string | null,
+      subjectId: string | null,
       classId: string,
       sectionId: string,
       timeSlotId: string,

@@ -175,11 +175,15 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
             selectedCell.day_id,
           )
 
-          if (conflictInfo && conflictInfo.has_conflict) {
+          if (conflictInfo && conflictInfo.has_conflict && conflictInfo.conflict_class_id && conflictInfo.conflict_section_id) {
             // Show dialog with conflict options
             setPendingAssignment({
               newTeacherId,
-              conflictInfo,
+              conflictInfo: {
+                has_conflict: true,
+                conflict_class_id: conflictInfo.conflict_class_id,
+                conflict_section_id: conflictInfo.conflict_section_id,
+              },
             })
             setIsConflictDialogOpen(true)
             return
