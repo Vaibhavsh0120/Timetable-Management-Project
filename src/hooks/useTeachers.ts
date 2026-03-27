@@ -7,20 +7,31 @@ import type { Teacher } from "../types"
 
 export const useTeachers = () => {
   const [teachers, setTeachers] = useState<Teacher[]>([])
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
   const supabase = useMemo(() => createClient(), [])
   const { user } = useAuth()
 
   const fetchTeachers = useCallback(async () => {
     if (!user) return
 
-    const { data, error } = await supabase.from("teachers").select("*").eq("user_id", user.id)
+    setLoading(true)
+    setError(null)
 
-    if (error) {
-      console.error("Error fetching teachers:", error)
-      return
+    try {
+      const { data, error } = await supabase.from("teachers").select("*").eq("user_id", user.id)
+
+      if (error) {
+        throw error
+      }
+
+      setTeachers(data)
+    } catch (err: any) {
+      console.error("Error fetching teachers:", err)
+      setError(err.message || "Failed to fetch teachers")
+    } finally {
+      setLoading(false)
     }
-
-    setTeachers(data)
   }, [supabase, user])
 
   useEffect(() => {
@@ -33,18 +44,24 @@ export const useTeachers = () => {
     async (name: string, subject_id: string) => {
       if (!user) return
 
-      const { data, error } = await supabase
-        .from("teachers")
-        .insert({ name, subject_id, user_id: user.id })
-        .select()
-        .single()
+      setError(null)
+      try {
+        const { data, error } = await supabase
+          .from("teachers")
+          .insert({ name, subject_id, user_id: user.id })
+          .select()
+          .single()
 
-      if (error) {
-        console.error("Error adding teacher:", error)
-        return
+        if (error) {
+          throw error
+        }
+
+        setTeachers((prevTeachers) => [...prevTeachers, data])
+      } catch (err: any) {
+        console.error("Error adding teacher:", err)
+        setError(err.message || "Failed to add teacher")
+        throw err
       }
-
-      setTeachers((prevTeachers) => [...prevTeachers, data])
     },
     [supabase, user],
   )
@@ -53,20 +70,26 @@ export const useTeachers = () => {
     async (teacherId: string, name: string, subject_id: string) => {
       if (!user) return
 
-      const { error } = await supabase
-        .from("teachers")
-        .update({ name, subject_id })
-        .eq("id", teacherId)
-        .eq("user_id", user.id)
+      setError(null)
+      try {
+        const { error } = await supabase
+          .from("teachers")
+          .update({ name, subject_id })
+          .eq("id", teacherId)
+          .eq("user_id", user.id)
 
-      if (error) {
-        console.error("Error updating teacher:", error)
-        return
+        if (error) {
+          throw error
+        }
+
+        setTeachers((prevTeachers) =>
+          prevTeachers.map((teacher) => (teacher.id === teacherId ? { ...teacher, name, subject_id } : teacher)),
+        )
+      } catch (err: any) {
+        console.error("Error updating teacher:", err)
+        setError(err.message || "Failed to update teacher")
+        throw err
       }
-
-      setTeachers((prevTeachers) =>
-        prevTeachers.map((teacher) => (teacher.id === teacherId ? { ...teacher, name, subject_id } : teacher)),
-      )
     },
     [supabase, user],
   )
@@ -75,20 +98,28 @@ export const useTeachers = () => {
     async (teacherId: string) => {
       if (!user) return
 
-      const { error } = await supabase.from("teachers").delete().eq("id", teacherId).eq("user_id", user.id)
+      setError(null)
+      try {
+        const { error } = await supabase.from("teachers").delete().eq("id", teacherId).eq("user_id", user.id)
 
-      if (error) {
-        console.error("Error deleting teacher:", error)
-        return
+        if (error) {
+          throw error
+        }
+
+        setTeachers((prevTeachers) => prevTeachers.filter((teacher) => teacher.id !== teacherId))
+      } catch (err: any) {
+        console.error("Error deleting teacher:", err)
+        setError(err.message || "Failed to delete teacher")
+        throw err
       }
-
-      setTeachers((prevTeachers) => prevTeachers.filter((teacher) => teacher.id !== teacherId))
     },
     [supabase, user],
   )
 
   return {
     teachers,
+    loading,
+    error,
     addTeacher,
     updateTeacher,
     deleteTeacher,

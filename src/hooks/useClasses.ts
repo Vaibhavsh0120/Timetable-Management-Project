@@ -7,35 +7,47 @@ import type { Class, Section } from "../types"
 
 export const useClasses = () => {
   const [classes, setClasses] = useState<Class[]>([])
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
   const supabase = useMemo(() => createClient(), [])
   const { user } = useAuth()
 
   const fetchClasses = useCallback(async () => {
     if (!user) return
 
-    const { data: classesData, error: classesError } = await supabase.from("classes").select("*").eq("user_id", user.id)
+    setLoading(true)
+    setError(null)
 
-    if (classesError) {
-      console.error("Error fetching classes:", classesError)
-      return
+    try {
+      // Fetch both classes and sections in parallel
+      const [
+        { data: classesData, error: classesError },
+        { data: sectionsData, error: sectionsError }
+      ] = await Promise.all([
+        supabase.from("classes").select("*").eq("user_id", user.id),
+        supabase.from("sections").select("*").eq("user_id", user.id)
+      ])
+
+      if (classesError) {
+        throw classesError
+      }
+      
+      if (sectionsError) {
+        throw sectionsError
+      }
+
+      const classesWithSections = classesData.map((cls: Class) => ({
+        ...cls,
+        sections: sectionsData.filter((section: Section) => section.class_id === cls.id),
+      }))
+
+      setClasses(classesWithSections)
+    } catch (err: any) {
+      console.error("Error fetching classes:", err)
+      setError(err.message || "Failed to fetch classes")
+    } finally {
+      setLoading(false)
     }
-
-    const { data: sectionsData, error: sectionsError } = await supabase
-      .from("sections")
-      .select("*")
-      .eq("user_id", user.id)
-
-    if (sectionsError) {
-      console.error("Error fetching sections:", sectionsError)
-      return
-    }
-
-    const classesWithSections = classesData.map((cls: Class) => ({
-      ...cls,
-      sections: sectionsData.filter((section: Section) => section.class_id === cls.id),
-    }))
-
-    setClasses(classesWithSections)
   }, [supabase, user])
 
   useEffect(() => {
@@ -48,14 +60,20 @@ export const useClasses = () => {
     async (name: string) => {
       if (!user) return
 
-      const { data, error } = await supabase.from("classes").insert({ name, user_id: user.id }).select().single()
+      setError(null)
+      try {
+        const { data, error } = await supabase.from("classes").insert({ name, user_id: user.id }).select().single()
 
-      if (error) {
-        console.error("Error adding class:", error)
-        return
+        if (error) {
+          throw error
+        }
+
+        setClasses((prevClasses) => [...prevClasses, { ...data, sections: [] }])
+      } catch (err: any) {
+        console.error("Error adding class:", err)
+        setError(err.message || "Failed to add class")
+        throw err
       }
-
-      setClasses((prevClasses) => [...prevClasses, { ...data, sections: [] }])
     },
     [supabase, user],
   )
@@ -64,18 +82,24 @@ export const useClasses = () => {
     async (updatedClass: Class) => {
       if (!user) return
 
-      const { error } = await supabase
-        .from("classes")
-        .update({ name: updatedClass.name })
-        .eq("id", updatedClass.id)
-        .eq("user_id", user.id)
+      setError(null)
+      try {
+        const { error } = await supabase
+          .from("classes")
+          .update({ name: updatedClass.name })
+          .eq("id", updatedClass.id)
+          .eq("user_id", user.id)
 
-      if (error) {
-        console.error("Error updating class:", error)
-        return
+        if (error) {
+          throw error
+        }
+
+        setClasses((prevClasses) => prevClasses.map((c) => (c.id === updatedClass.id ? updatedClass : c)))
+      } catch (err: any) {
+        console.error("Error updating class:", err)
+        setError(err.message || "Failed to update class")
+        throw err
       }
-
-      setClasses((prevClasses) => prevClasses.map((c) => (c.id === updatedClass.id ? updatedClass : c)))
     },
     [supabase, user],
   )
@@ -84,14 +108,20 @@ export const useClasses = () => {
     async (classId: string) => {
       if (!user) return
 
-      const { error } = await supabase.from("classes").delete().eq("id", classId).eq("user_id", user.id)
+      setError(null)
+      try {
+        const { error } = await supabase.from("classes").delete().eq("id", classId).eq("user_id", user.id)
 
-      if (error) {
-        console.error("Error deleting class:", error)
-        return
+        if (error) {
+          throw error
+        }
+
+        setClasses((prevClasses) => prevClasses.filter((c) => c.id !== classId))
+      } catch (err: any) {
+        console.error("Error deleting class:", err)
+        setError(err.message || "Failed to delete class")
+        throw err
       }
-
-      setClasses((prevClasses) => prevClasses.filter((c) => c.id !== classId))
     },
     [supabase, user],
   )
@@ -100,28 +130,34 @@ export const useClasses = () => {
     async (classId: string, sectionName: string) => {
       if (!user) return
 
-      const { data, error } = await supabase
-        .from("sections")
-        .insert({ name: sectionName, class_id: classId, user_id: user.id })
-        .select()
-        .single()
+      setError(null)
+      try {
+        const { data, error } = await supabase
+          .from("sections")
+          .insert({ name: sectionName, class_id: classId, user_id: user.id })
+          .select()
+          .single()
 
-      if (error) {
-        console.error("Error adding section:", error)
-        return
-      }
+        if (error) {
+          throw error
+        }
 
-      setClasses((prevClasses) =>
-        prevClasses.map((c) => {
-          if (c.id === classId) {
-            return {
-              ...c,
-              sections: [...c.sections, data],
+        setClasses((prevClasses) =>
+          prevClasses.map((c) => {
+            if (c.id === classId) {
+              return {
+                ...c,
+                sections: [...c.sections, data],
+              }
             }
-          }
-          return c
-        }),
-      )
+            return c
+          }),
+        )
+      } catch (err: any) {
+        console.error("Error adding section:", err)
+        setError(err.message || "Failed to add section")
+        throw err
+      }
     },
     [supabase, user],
   )
@@ -130,29 +166,35 @@ export const useClasses = () => {
     async (classId: string, updatedSection: Section) => {
       if (!user) return
 
-      const { error } = await supabase
-        .from("sections")
-        .update({ name: updatedSection.name })
-        .eq("id", updatedSection.id)
-        .eq("class_id", classId)
-        .eq("user_id", user.id)
+      setError(null)
+      try {
+        const { error } = await supabase
+          .from("sections")
+          .update({ name: updatedSection.name })
+          .eq("id", updatedSection.id)
+          .eq("class_id", classId)
+          .eq("user_id", user.id)
 
-      if (error) {
-        console.error("Error updating section:", error)
-        return
-      }
+        if (error) {
+          throw error
+        }
 
-      setClasses((prevClasses) =>
-        prevClasses.map((c) => {
-          if (c.id === classId) {
-            return {
-              ...c,
-              sections: c.sections.map((s) => (s.id === updatedSection.id ? updatedSection : s)),
+        setClasses((prevClasses) =>
+          prevClasses.map((c) => {
+            if (c.id === classId) {
+              return {
+                ...c,
+                sections: c.sections.map((s) => (s.id === updatedSection.id ? updatedSection : s)),
+              }
             }
-          }
-          return c
-        }),
-      )
+            return c
+          }),
+        )
+      } catch (err: any) {
+        console.error("Error updating section:", err)
+        setError(err.message || "Failed to update section")
+        throw err
+      }
     },
     [supabase, user],
   )
@@ -161,35 +203,43 @@ export const useClasses = () => {
     async (classId: string, sectionId: string) => {
       if (!user) return
 
-      const { error } = await supabase
-        .from("sections")
-        .delete()
-        .eq("id", sectionId)
-        .eq("class_id", classId)
-        .eq("user_id", user.id)
+      setError(null)
+      try {
+        const { error } = await supabase
+          .from("sections")
+          .delete()
+          .eq("id", sectionId)
+          .eq("class_id", classId)
+          .eq("user_id", user.id)
 
-      if (error) {
-        console.error("Error deleting section:", error)
-        return
-      }
+        if (error) {
+          throw error
+        }
 
-      setClasses((prevClasses) =>
-        prevClasses.map((c) => {
-          if (c.id === classId) {
-            return {
-              ...c,
-              sections: c.sections.filter((s) => s.id !== sectionId),
+        setClasses((prevClasses) =>
+          prevClasses.map((c) => {
+            if (c.id === classId) {
+              return {
+                ...c,
+                sections: c.sections.filter((s) => s.id !== sectionId),
+              }
             }
-          }
-          return c
-        }),
-      )
+            return c
+          }),
+        )
+      } catch (err: any) {
+        console.error("Error deleting section:", err)
+        setError(err.message || "Failed to delete section")
+        throw err
+      }
     },
     [supabase, user],
   )
 
   return {
     classes,
+    loading,
+    error,
     addClass,
     updateClass,
     deleteClass,

@@ -8,28 +8,31 @@ import type { Day, TimeSlot, TimeTableEntry } from "../types"
 export const useTimetable = (timetableId: string) => {
   const [timeTable, setTimeTable] = useState<TimeTableEntry[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const supabase = useMemo(() => createClient(), [])
   const { user } = useAuth()
 
   const initializeTimeTable = useCallback(
     async (classId: string, sectionId: string, days: Day[], timeSlots: TimeSlot[]) => {
       if (!user) {
-        console.error("User not authenticated")
+        setError("User not authenticated")
+        setIsLoading(false)
         return
       }
       
       setIsLoading(true)
+      setError(null)
 
       // Check if timeSlots is empty
       if (!timeSlots || timeSlots.length === 0) {
-        console.error("Cannot initialize timetable: time slots are not loaded yet")
+        setError("Cannot initialize timetable: time slots are not loaded yet")
         setIsLoading(false)
         return
       }
 
       // Check if days is empty
       if (!days || days.length === 0) {
-        console.error("Cannot initialize timetable: days are not provided")
+        setError("Cannot initialize timetable: days are not provided")
         setIsLoading(false)
         return
       }
@@ -45,9 +48,7 @@ export const useTimetable = (timetableId: string) => {
           .eq("section_id", sectionId)
 
         if (fetchError) {
-          console.error("Error fetching existing entries:", fetchError)
-          setIsLoading(false)
-          return
+          throw fetchError
         }
 
         // Create map of existing entries for quick lookup
@@ -75,7 +76,6 @@ export const useTimetable = (timetableId: string) => {
 
         // Don't upsert if there are no entries to create
         if (entriesToUpsert.length === 0) {
-          console.warn("No entries to upsert")
           setIsLoading(false)
           return
         }
@@ -88,19 +88,13 @@ export const useTimetable = (timetableId: string) => {
           .select()
 
         if (error) {
-          console.error("Error initializing timetable:", error)
-          console.error("Error details:", JSON.stringify(error, null, 2))
-          setIsLoading(false)
-          return
+          throw error
         }
 
         setTimeTable(data || [])
-      } catch (error) {
-        console.error("Unexpected error initializing timetable:", error)
-        if (error instanceof Error) {
-          console.error("Error message:", error.message)
-          console.error("Error stack:", error.stack)
-        }
+      } catch (err: any) {
+        console.error("Error initializing timetable:", err)
+        setError(err.message || "Failed to initialize timetable")
       } finally {
         setIsLoading(false)
       }
@@ -111,11 +105,13 @@ export const useTimetable = (timetableId: string) => {
   const fetchTimetable = useCallback(
     async (classId: string, sectionId: string) => {
       if (!user) {
-        console.error("User not authenticated")
+        setError("User not authenticated")
+        setIsLoading(false)
         return
       }
       
       setIsLoading(true)
+      setError(null)
 
       try {
         const { data, error } = await supabase
@@ -127,14 +123,13 @@ export const useTimetable = (timetableId: string) => {
           .eq("section_id", sectionId)
 
         if (error) {
-          console.error("Error fetching timetable:", error)
-          setIsLoading(false)
-          return
+          throw error
         }
 
         setTimeTable(data || [])
-      } catch (error) {
-        console.error("Unexpected error fetching timetable:", error)
+      } catch (err: any) {
+        console.error("Error fetching timetable:", err)
+        setError(err.message || "Failed to fetch timetable")
       } finally {
         setIsLoading(false)
       }
@@ -142,7 +137,7 @@ export const useTimetable = (timetableId: string) => {
     [supabase, timetableId, user],
   )
 
-  const updateTeacherInTimeTable = useCallback(
+    const updateTeacherInTimeTable = useCallback(
     async (
       teacherId: string,
       subjectId: string,
@@ -152,11 +147,13 @@ export const useTimetable = (timetableId: string) => {
       dayId: number,
     ) => {
       if (!user) {
-        console.error("User not authenticated")
+        setError("User not authenticated")
+        setIsLoading(false)
         return
       }
       
       setIsLoading(true)
+      setError(null)
 
       try {
         const { data, error } = await supabase
@@ -178,9 +175,7 @@ export const useTimetable = (timetableId: string) => {
           .single()
 
         if (error) {
-          console.error("Error updating teacher in timetable:", error)
-          setIsLoading(false)
-          return
+          throw error
         }
 
         // Update the local state
@@ -197,8 +192,9 @@ export const useTimetable = (timetableId: string) => {
 
         // Fetch the latest data to ensure consistency
         await fetchTimetable(classId, sectionId)
-      } catch (error) {
-        console.error("Unexpected error updating teacher in timetable:", error)
+      } catch (err: any) {
+        console.error("Error updating teacher in timetable:", err)
+        setError(err.message || "Failed to update teacher in timetable")
       } finally {
         setIsLoading(false)
       }
@@ -214,7 +210,7 @@ export const useTimetable = (timetableId: string) => {
   const checkTeacherConflict = useCallback(
     async (teacherId: string, classId: string, sectionId: string, timeSlotId: string, dayId: number) => {
       if (!user) {
-        console.error("User not authenticated")
+        setError("User not authenticated")
         return false
       }
 
@@ -228,13 +224,13 @@ export const useTimetable = (timetableId: string) => {
         })
 
         if (error) {
-          console.error("Error checking teacher conflict:", error)
-          return false
+          throw error
         }
 
         return data
-      } catch (error) {
-        console.error("Unexpected error checking teacher conflict:", error)
+      } catch (err: any) {
+        console.error("Error checking teacher conflict:", err)
+        setError(err.message || "Failed to check teacher conflict")
         return false
       }
     },
@@ -244,6 +240,7 @@ export const useTimetable = (timetableId: string) => {
   return {
     timeTable,
     isLoading,
+    error,
     initializeTimeTable,
     fetchTimetable,
     updateTeacherInTimeTable,

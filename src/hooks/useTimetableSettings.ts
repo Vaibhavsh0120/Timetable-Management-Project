@@ -8,20 +8,26 @@ import type { TimetableSettings } from "../types"
 export const useTimetableSettings = (timetableId: string) => {
   const [settings, setSettings] = useState<TimetableSettings | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const supabase = useMemo(() => createClient(), [])
   const { user } = useAuth()
 
   const createDefaultSettings = useCallback(async () => {
-    if (!user || !timetableId) return
+    if (!user || !timetableId) return null
 
+    setError(null)
     try {
       // First check if settings already exist
-      const { data: existingSettings } = await supabase
+      const { data: existingSettings, error: existingError } = await supabase
         .from("timetable_settings")
         .select("*")
         .eq("timetable_id", timetableId)
         .eq("user_id", user.id)
         .single()
+
+      if (existingError && existingError.code !== "PGRST116") {
+        throw existingError
+      }
 
       if (existingSettings) {
         setSettings(existingSettings)
@@ -48,26 +54,30 @@ export const useTimetableSettings = (timetableId: string) => {
       if (error) {
         // If it's a conflict error, try to fetch the existing settings
         if (error.code === "23505" || error.message?.includes("duplicate")) {
-          const { data: existing } = await supabase
+          const { data: existing, error: existingErr } = await supabase
             .from("timetable_settings")
             .select("*")
             .eq("timetable_id", timetableId)
             .eq("user_id", user.id)
             .single()
           
+          if (existingErr) {
+            throw existingErr
+          }
+          
           if (existing) {
             setSettings(existing)
             return existing
           }
         }
-        console.error("Error creating default settings:", error)
-        return null
+        throw error
       }
 
       setSettings(data)
       return data
-    } catch (error) {
-      console.error("Unexpected error creating default settings:", error)
+    } catch (err: any) {
+      console.error("Error creating default settings:", err)
+      setError(err.message || "Failed to create default settings")
       return null
     }
   }, [supabase, user, timetableId])
@@ -76,6 +86,7 @@ export const useTimetableSettings = (timetableId: string) => {
     if (!user || !timetableId) return
 
     setIsLoading(true)
+    setError(null)
     try {
       const { data, error } = await supabase
         .from("timetable_settings")
@@ -94,14 +105,13 @@ export const useTimetableSettings = (timetableId: string) => {
           setIsLoading(false)
           return
         }
-        console.error("Error fetching timetable settings:", error)
-        setIsLoading(false)
-        return
+        throw error
       }
 
       setSettings(data)
-    } catch (error) {
-      console.error("Unexpected error fetching timetable settings:", error)
+    } catch (err: any) {
+      console.error("Error fetching timetable settings:", err)
+      setError(err.message || "Failed to fetch timetable settings")
     } finally {
       setIsLoading(false)
     }

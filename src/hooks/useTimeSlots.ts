@@ -4,26 +4,34 @@ import { useState, useCallback, useEffect, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "./useAuth"
 import type { TimeSlot } from "../types"
+import { formatTime12Hour } from "@/lib/utils"
 
 export const useTimeSlots = () => {
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
   const supabase = useMemo(() => createClient(), [])
   const { user } = useAuth()
 
   const fetchTimeSlots = useCallback(async () => {
     if (!user) return
 
+    setLoading(true)
+    setError(null)
+
     try {
       const { data, error } = await supabase.from("timeslots").select("*").eq("user_id", user.id).order("start_time")
 
       if (error) {
-        console.error("Error fetching time slots:", error)
-        return
+        throw error
       }
 
       setTimeSlots(data || [])
-    } catch (error) {
-      console.error("Error fetching time slots:", error)
+    } catch (err: any) {
+      console.error("Error fetching time slots:", err)
+      setError(err.message || "Failed to fetch time slots")
+    } finally {
+      setLoading(false)
     }
   }, [supabase, user])
 
@@ -37,6 +45,7 @@ export const useTimeSlots = () => {
     async (start_time: string, end_time: string) => {
       if (!user) return
 
+      setError(null)
       try {
         // Format time to ensure consistent format (hh:mm AM/PM)
         const formattedStartTime = formatTime12Hour(start_time)
@@ -49,13 +58,14 @@ export const useTimeSlots = () => {
           .single()
 
         if (error) {
-          console.error("Error adding time slot:", error)
-          return
+          throw error
         }
 
         setTimeSlots((prevTimeSlots) => [...prevTimeSlots, data])
-      } catch (error) {
-        console.error("Error adding time slot:", error)
+      } catch (err: any) {
+        console.error("Error adding time slot:", err)
+        setError(err.message || "Failed to add time slot")
+        throw err
       }
     },
     [supabase, user],
@@ -65,6 +75,7 @@ export const useTimeSlots = () => {
     async (timeSlotId: string, start_time: string, end_time: string, is_lunch?: boolean) => {
       if (!user) return
 
+      setError(null)
       try {
         // Format time to ensure consistent format (hh:mm AM/PM)
         const formattedStartTime = formatTime12Hour(start_time)
@@ -86,8 +97,7 @@ export const useTimeSlots = () => {
           .eq("user_id", user.id)
 
         if (error) {
-          console.error("Error updating time slot:", error)
-          return
+          throw error
         }
 
         setTimeSlots((prevTimeSlots) =>
@@ -97,8 +107,10 @@ export const useTimeSlots = () => {
               : timeSlot,
           ),
         )
-      } catch (error) {
-        console.error("Error updating time slot:", error)
+      } catch (err: any) {
+        console.error("Error updating time slot:", err)
+        setError(err.message || "Failed to update time slot")
+        throw err
       }
     },
     [supabase, user],
@@ -108,17 +120,19 @@ export const useTimeSlots = () => {
     async (timeSlotId: string) => {
       if (!user) return
 
+      setError(null)
       try {
         const { error } = await supabase.from("timeslots").delete().eq("id", timeSlotId).eq("user_id", user.id)
 
         if (error) {
-          console.error("Error deleting time slot:", error)
-          return
+          throw error
         }
 
         setTimeSlots((prevTimeSlots) => prevTimeSlots.filter((timeSlot) => timeSlot.id !== timeSlotId))
-      } catch (error) {
-        console.error("Error deleting time slot:", error)
+      } catch (err: any) {
+        console.error("Error deleting time slot:", err)
+        setError(err.message || "Failed to delete time slot")
+        throw err
       }
     },
     [supabase, user],
@@ -126,26 +140,14 @@ export const useTimeSlots = () => {
 
   // Helper function to ensure consistent 12-hour time format (hh:mm AM/PM)
   const formatTime12Hour = (time: string) => {
-    try {
-      // If time is already in correct format, return it
-      if (/^(0?[1-9]|1[0-2]):[0-5][0-9] (AM|PM)$/.test(time)) {
-        return time
-      }
-
-      // If time is in HTML input format (HH:mm), convert it to 12-hour format
-      const [hours, minutes] = time.split(":")
-      const hour = Number.parseInt(hours)
-      const ampm = hour >= 12 ? "PM" : "AM"
-      const hour12 = hour % 12 || 12
-      return `${hour12}:${minutes} ${ampm}`
-    } catch (error) {
-      console.error("Error formatting time:", error)
-      return time
-    }
+    // Use the utility function from lib/utils
+    return formatTime12Hour(time)
   }
 
   return {
     timeSlots,
+    loading,
+    error,
     addTimeSlot,
     updateTimeSlot,
     deleteTimeSlot,

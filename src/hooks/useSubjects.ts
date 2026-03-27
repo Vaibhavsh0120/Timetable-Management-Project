@@ -7,20 +7,31 @@ import type { Subject } from "../types"
 
 export const useSubjects = () => {
   const [subjects, setSubjects] = useState<Subject[]>([])
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
   const supabase = useMemo(() => createClient(), [])
   const { user } = useAuth()
 
   const fetchSubjects = useCallback(async () => {
     if (!user) return
 
-    const { data, error } = await supabase.from("subjects").select("*").eq("user_id", user.id)
+    setLoading(true)
+    setError(null)
 
-    if (error) {
-      console.error("Error fetching subjects:", error)
-      return
+    try {
+      const { data, error } = await supabase.from("subjects").select("*").eq("user_id", user.id)
+
+      if (error) {
+        throw error
+      }
+
+      setSubjects(data)
+    } catch (err: any) {
+      console.error("Error fetching subjects:", err)
+      setError(err.message || "Failed to fetch subjects")
+    } finally {
+      setLoading(false)
     }
-
-    setSubjects(data)
   }, [supabase, user])
 
   useEffect(() => {
@@ -33,14 +44,20 @@ export const useSubjects = () => {
     async (name: string) => {
       if (!user) return
 
-      const { data, error } = await supabase.from("subjects").insert({ name, user_id: user.id }).select().single()
+      setError(null)
+      try {
+        const { data, error } = await supabase.from("subjects").insert({ name, user_id: user.id }).select().single()
 
-      if (error) {
-        console.error("Error adding subject:", error)
-        return
+        if (error) {
+          throw error
+        }
+
+        setSubjects((prevSubjects) => [...prevSubjects, data])
+      } catch (err: any) {
+        console.error("Error adding subject:", err)
+        setError(err.message || "Failed to add subject")
+        throw err
       }
-
-      setSubjects((prevSubjects) => [...prevSubjects, data])
     },
     [supabase, user],
   )
@@ -49,16 +66,22 @@ export const useSubjects = () => {
     async (subjectId: string, name: string) => {
       if (!user) return
 
-      const { error } = await supabase.from("subjects").update({ name }).eq("id", subjectId).eq("user_id", user.id)
+      setError(null)
+      try {
+        const { error } = await supabase.from("subjects").update({ name }).eq("id", subjectId).eq("user_id", user.id)
 
-      if (error) {
-        console.error("Error updating subject:", error)
-        return
+        if (error) {
+          throw error
+        }
+
+        setSubjects((prevSubjects) =>
+          prevSubjects.map((subject) => (subject.id === subjectId ? { ...subject, name } : subject)),
+        )
+      } catch (err: any) {
+        console.error("Error updating subject:", err)
+        setError(err.message || "Failed to update subject")
+        throw err
       }
-
-      setSubjects((prevSubjects) =>
-        prevSubjects.map((subject) => (subject.id === subjectId ? { ...subject, name } : subject)),
-      )
     },
     [supabase, user],
   )
@@ -67,20 +90,28 @@ export const useSubjects = () => {
     async (subjectId: string) => {
       if (!user) return
 
-      const { error } = await supabase.from("subjects").delete().eq("id", subjectId).eq("user_id", user.id)
+      setError(null)
+      try {
+        const { error } = await supabase.from("subjects").delete().eq("id", subjectId).eq("user_id", user.id)
 
-      if (error) {
-        console.error("Error deleting subject:", error)
-        return
+        if (error) {
+          throw error
+        }
+
+        setSubjects((prevSubjects) => prevSubjects.filter((subject) => subject.id !== subjectId))
+      } catch (err: any) {
+        console.error("Error deleting subject:", err)
+        setError(err.message || "Failed to delete subject")
+        throw err
       }
-
-      setSubjects((prevSubjects) => prevSubjects.filter((subject) => subject.id !== subjectId))
     },
     [supabase, user],
   )
 
   return {
     subjects,
+    loading,
+    error,
     addSubject,
     updateSubject,
     deleteSubject,
