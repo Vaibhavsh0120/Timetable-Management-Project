@@ -212,32 +212,42 @@ export const useTimetable = (timetableId: string) => {
     setTimeTable([])
   }, [])
 
-  // Add this new function inside the useTimetable hook
+  // Check if teacher is already assigned at the same time slot in any other class/section
   const checkTeacherConflict = useCallback(
     async (teacherId: string, classId: string, sectionId: string, timeSlotId: string, dayId: number) => {
       if (!user) {
         setError("User not authenticated")
-        return false
+        return null
       }
 
       try {
-        const { data, error } = await supabase.rpc("check_teacher_conflict", {
-          p_teacher_id: teacherId,
-          p_class_id: classId,
-          p_section_id: sectionId,
-          p_time_slot_id: timeSlotId,
-          p_day_id: dayId,
-        })
+        // Query all timetable entries for this teacher on the same day and time slot
+        const { data, error } = await supabase
+          .from("timetableentries")
+          .select("class_id, section_id")
+          .eq("teacher_id", teacherId)
+          .eq("time_slot_id", timeSlotId)
+          .eq("day_id", dayId)
+          .neq("class_id", classId) // Exclude the current class (what we're trying to assign to)
 
         if (error) {
           throw error
         }
 
-        return data
+        // If there's an existing entry, return conflict info with the conflicting class and section
+        if (data && data.length > 0) {
+          return {
+            has_conflict: true,
+            conflict_class_id: data[0].class_id,
+            conflict_section_id: data[0].section_id,
+          }
+        }
+
+        return { has_conflict: false }
       } catch (err: any) {
         console.error("Error checking teacher conflict:", err)
         setError(err.message || "Failed to check teacher conflict")
-        return false
+        return { has_conflict: false }
       }
     },
     [supabase, user],

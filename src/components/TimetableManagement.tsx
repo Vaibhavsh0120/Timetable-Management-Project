@@ -11,6 +11,7 @@ import { TimeSlotManager } from "./TimeSlot/TimeSlotManager"
 import { TimeSlotEditor } from "./TimeSlot/TimeSlotEditor"
 import { TimetableGrid } from "./Timetable/TimetableGrid"
 import { TimetableSettingsDialog } from "./Timetable/TimetableSettingsDialog"
+import { TeacherConflictDialog } from "./Timetable/TeacherConflictDialog"
 import { useClasses } from "../hooks/useClasses"
 import { useTeachers } from "../hooks/useTeachers"
 import { useSubjects } from "../hooks/useSubjects"
@@ -26,6 +27,15 @@ interface TimetableManagementProps {
   timetableId: string
 }
 
+interface PendingTeacherAssignment {
+  newTeacherId: string
+  conflictInfo: {
+    has_conflict: boolean
+    conflict_class_id: string
+    conflict_section_id: string
+  }
+}
+
 export const TimetableManagement = ({ timetableId }: TimetableManagementProps) => {
   const { toast } = useToast()
   const [selectedClass, setSelectedClass] = useState<string | null>(null)
@@ -36,6 +46,9 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
   const [isManagingTimeSlots, setIsManagingTimeSlots] = useState(false)
   const [isManagingTeachersSubjects, setIsManagingTeachersSubjects] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isConflictDialogOpen, setIsConflictDialogOpen] = useState(false)
+  const [pendingAssignment, setPendingAssignment] = useState<PendingTeacherAssignment | null>(null)
+  const [isAssignmentLoading, setIsAssignmentLoading] = useState(false)
   const hasInitializedRef = useRef<string | null>(null)
   
   // Use timetable settings hook instead of localStorage
@@ -154,7 +167,7 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
         }
 
         try {
-          const hasConflict = await checkTeacherConflict(
+          const conflictInfo = await checkTeacherConflict(
             newTeacherId,
             selectedCell.class_id,
             selectedCell.section_id,
@@ -162,14 +175,13 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
             selectedCell.day_id,
           )
 
-          if (hasConflict) {
-            const conflictClass = classes.find((c) => c.id === selectedCell.class_id)
-            const conflictSection = conflictClass?.sections.find((s) => s.id === selectedCell.section_id)
-            toast({
-              title: "Teacher Assignment Conflict",
-              description: `${teacher.name} is already assigned to ${conflictClass?.name} ${conflictSection?.name} during this time slot.`,
-              variant: "destructive",
+          if (conflictInfo && conflictInfo.has_conflict) {
+            // Show dialog with conflict options
+            setPendingAssignment({
+              newTeacherId,
+              conflictInfo,
             })
+            setIsConflictDialogOpen(true)
             return
           }
 
@@ -207,6 +219,103 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
       toast,
     ],
   )
+
+  // Handle moving teacher from old class to new class
+  const handleReplaceTeacher = useCallback(
+    async () => {
+      if (!selectedCell || !pendingAssignment) return
+
+      const teacher = teachers.find((t) => t.id === pendingAssignment.newTeacherId)
+      if (!teacher) return
+
+      setIsAssignmentLoading(true)
+      try {
+        // Remove teacher from the conflicting class at this time slot
+        await updateTeacherInTimeTable(
+          null,
+          null,
+          pendingAssignment.conflictInfo.conflict_class_id,
+          pendingAssignment.conflictInfo.conflict_section_id,
+          selectedCell.time_slot_id,
+          selectedCell.day_id,
+        )
+
+        // Add teacher to the new class
+        await updateTeacherInTimeTable(
+          pendingAssignment.newTeacherId,
+          teacher.subject_id,
+          selectedCell.class_id,
+          selectedCell.section_id,
+          selectedCell.time_slot_id,
+          selectedCell.day_id,
+        )
+
+        setIsConflictDialogOpen(false)
+        setPendingAssignment(null)
+        setSelectedCell(null)
+        toast({
+          title: "Teacher Moved",
+          description: `${teacher.name} has been moved to ${classes.find((c) => c.id === selectedCell.class_id)?.name}.`,
+        })
+      } catch (error) {
+        console.error("Error replacing teacher:", error)
+        toast({
+          title: "Error",
+          description: "Failed to move teacher to new class.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsAssignmentLoading(false)
+      }
+    },
+    [selectedCell, pendingAssignment, teachers, updateTeacherInTimeTable, classes, toast],
+  )
+
+  // Handle assigning teacher to both classes
+  const handleAssignBoth = useCallback(
+    async () => {
+      if (!selectedCell || !pendingAssignment) return
+
+      const teacher = teachers.find((t) => t.id === pendingAssignment.newTeacherId)
+      if (!teacher) return
+
+      setIsAssignmentLoading(true)
+      try {
+        // Allow the assignment to the new class (teacher will be in both classes at this time)
+        await updateTeacherInTimeTable(
+          pendingAssignment.newTeacherId,
+          teacher.subject_id,
+          selectedCell.class_id,
+          selectedCell.section_id,
+          selectedCell.time_slot_id,
+          selectedCell.day_id,
+        )
+
+        setIsConflictDialogOpen(false)
+        setPendingAssignment(null)
+        setSelectedCell(null)
+        toast({
+          title: "Teacher Assigned",
+          description: `${teacher.name} is now assigned to both classes at this time slot.`,
+        })
+      } catch (error) {
+        console.error("Error assigning teacher to both classes:", error)
+        toast({
+          title: "Error",
+          description: "Failed to assign teacher to the new class.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsAssignmentLoading(false)
+      }
+    },
+    [selectedCell, pendingAssignment, teachers, updateTeacherInTimeTable, toast],
+  )
+
+  const handleCancelConflict = useCallback(() => {
+    setIsConflictDialogOpen(false)
+    setPendingAssignment(null)
+  }, [])
 
   return (
     <div className="container mx-auto p-4">
@@ -343,6 +452,30 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
           </div>
         </DialogContent>
       </Dialog>
+
+      {pendingAssignment && selectedCell && (
+        <TeacherConflictDialog
+          isOpen={isConflictDialogOpen}
+          onClose={handleCancelConflict}
+          teacherName={teachers.find((t) => t.id === pendingAssignment.newTeacherId)?.name || "Unknown"}
+          conflictClassName={classes.find((c) => c.id === pendingAssignment.conflictInfo.conflict_class_id)?.name || "Unknown"}
+          conflictSectionName={
+            classes
+              .find((c) => c.id === pendingAssignment.conflictInfo.conflict_class_id)
+              ?.sections.find((s) => s.id === pendingAssignment.conflictInfo.conflict_section_id)?.name || "Unknown"
+          }
+          currentClassName={classes.find((c) => c.id === selectedCell.class_id)?.name || "Unknown"}
+          currentSectionName={
+            classes
+              .find((c) => c.id === selectedCell.class_id)
+              ?.sections.find((s) => s.id === selectedCell.section_id)?.name || "Unknown"
+          }
+          timeSlotTime={timeSlots.find((ts) => ts.id === selectedCell.time_slot_id)?.start_time || "Unknown"}
+          onReplace={handleReplaceTeacher}
+          onAssignBoth={handleAssignBoth}
+          isLoading={isAssignmentLoading}
+        />
+      )}
     </div>
   )
 }
