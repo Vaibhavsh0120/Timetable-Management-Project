@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect, useMemo } from "react"
+import { useState, useCallback, useEffect, useMemo, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "./useAuth"
 import type { TimetableSettings } from "../types"
@@ -9,8 +9,14 @@ export const useTimetableSettings = (timetableId: string) => {
   const [settings, setSettings] = useState<TimetableSettings | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = useMemo(() => createClient(), [])
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
   const { user } = useAuth()
+  
+  // Lazy initialize Supabase client only once
+  if (!supabaseRef.current) {
+    supabaseRef.current = createClient()
+  }
+  const supabase = supabaseRef.current
 
   const createDefaultSettings = useCallback(async () => {
     if (!user || !timetableId) return null

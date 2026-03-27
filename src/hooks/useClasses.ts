@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect, useMemo } from "react"
+import { useState, useCallback, useEffect, useMemo, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "./useAuth"
 import type { Class, Section } from "../types"
@@ -9,8 +9,14 @@ export const useClasses = () => {
   const [classes, setClasses] = useState<Class[]>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = useMemo(() => createClient(), [])
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
   const { user } = useAuth()
+  
+  // Lazy initialize Supabase client only once
+  if (!supabaseRef.current) {
+    supabaseRef.current = createClient()
+  }
+  const supabase = supabaseRef.current
 
   const fetchClasses = useCallback(async () => {
     if (!user) return

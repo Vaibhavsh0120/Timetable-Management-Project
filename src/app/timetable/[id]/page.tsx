@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import dynamic from "next/dynamic"
@@ -24,9 +24,15 @@ export default function TimetablePage() {
   const router = useRouter()
   const params = useParams()
   const { toast } = useToast()
-  const supabase = useMemo(() => createClient(), [])
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
   const [timetable, setTimetable] = useState<Timetable | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  
+  // Lazy initialize Supabase client only once
+  if (!supabaseRef.current) {
+    supabaseRef.current = createClient()
+  }
+  const supabase = supabaseRef.current
 
   // Extract id from params to avoid serialization issues
   const timetableId = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : ''

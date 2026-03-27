@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,12 @@ import type { Timetable } from "@/types"
 export const TimetableDashboard = () => {
   const { toast } = useToast()
   const router = useRouter()
-  const supabase = useMemo(() => createClient(), [])
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  
+  if (!supabaseRef.current) {
+    supabaseRef.current = createClient()
+  }
+  const supabase = supabaseRef.current
   const { timetables, isLoading, createTimetable, updateTimetable, deleteTimetable, fetchTimetables } = useTimetables()
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
