@@ -154,7 +154,7 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
         }
 
         try {
-          const hasConflict = await checkTeacherConflict(
+          const conflictInfo = await checkTeacherConflict(
             newTeacherId,
             selectedCell.class_id,
             selectedCell.section_id,
@@ -162,9 +162,10 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
             selectedCell.day_id,
           )
 
-          if (hasConflict) {
-            const conflictClass = classes.find((c) => c.id === selectedCell.class_id)
-            const conflictSection = conflictClass?.sections.find((s) => s.id === selectedCell.section_id)
+          if (conflictInfo && conflictInfo.has_conflict) {
+            // conflictInfo contains the class and section where the teacher is already assigned
+            const conflictClass = classes.find((c) => c.id === conflictInfo.conflict_class_id)
+            const conflictSection = conflictClass?.sections.find((s) => s.id === conflictInfo.conflict_section_id)
             toast({
               title: "Teacher Assignment Conflict",
               description: `${teacher.name} is already assigned to ${conflictClass?.name} ${conflictSection?.name} during this time slot.`,
