@@ -50,16 +50,16 @@ export const TimetableCard = memo(({ timetable, onRename, onDelete }: TimetableC
   }, [timetable.created_at])
 
   return (
-    <div className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden group">
+    <div className="rounded-xl border border-border bg-card shadow-sm hover:shadow-lg hover:border-primary/30 transition-all duration-300 overflow-hidden group cursor-pointer">
       <div className="p-6">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="flex-shrink-0 w-12 h-12 rounded-lg border bg-background flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-foreground" />
+            <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+              <Calendar className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold text-foreground truncate">
+              <h3 className="text-lg font-bold text-foreground truncate group-hover:text-primary transition-colors">
                 {timetable.name}
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
@@ -72,7 +72,7 @@ export const TimetableCard = memo(({ timetable, onRename, onDelete }: TimetableC
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 flex-shrink-0"
+                className="h-8 w-8 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <MoreVertical className="w-4 h-4" />
               </Button>
@@ -91,7 +91,7 @@ export const TimetableCard = memo(({ timetable, onRename, onDelete }: TimetableC
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-4 border-t">
+        <div className="flex items-center justify-between pt-4 border-t border-border">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="w-4 h-4" />
             <span>Created {formattedCreatedAt}</span>
@@ -100,7 +100,7 @@ export const TimetableCard = memo(({ timetable, onRename, onDelete }: TimetableC
             onClick={handleOpen}
             variant="ghost"
             size="sm"
-            className="gap-2"
+            className="gap-2 text-primary hover:text-primary hover:bg-primary/10 transition-colors font-medium"
           >
             Open
             <ArrowRight className="w-4 h-4" />

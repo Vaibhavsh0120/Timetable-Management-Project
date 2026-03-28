@@ -178,21 +178,21 @@ export const TimetableDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-lg border bg-card">
-                <Calendar className="w-5 h-5 text-foreground" />
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
+                <Calendar className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-foreground">Timetable Manager</h1>
-                <p className="text-xs text-muted-foreground">Manage your schedules</p>
+                <h1 className="text-lg font-bold text-foreground">Timetable Manager</h1>
+                <p className="text-xs text-muted-foreground">Manage your schedules effortlessly</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <ThemeToggle />
-              <Button onClick={handleLogout} variant="outline" className="gap-2">
+              <Button onClick={handleLogout} variant="outline" className="gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary transition-colors">
                 <LogOut className="w-4 h-4" />
                 Logout
               </Button>
@@ -204,20 +204,20 @@ export const TimetableDashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Actions Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               placeholder="Search timetables..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-11"
+              className="pl-10 h-11 border border-border rounded-lg bg-card focus:ring-2 focus:ring-primary transition-colors"
             />
           </div>
           <Button
             onClick={() => setIsCreateDialogOpen(true)}
             disabled={isLoading}
-            className="h-11 gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-11 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-5 h-5" />
             Create New Timetable
@@ -233,27 +233,28 @@ export const TimetableDashboard = () => {
             </div>
           </div>
         ) : filteredTimetables.length === 0 ? (
-          <div className="rounded-2xl border bg-card p-12 text-center">
+          <div className="rounded-xl border border-border bg-card p-12 text-center shadow-sm">
             {searchQuery ? (
               <>
-                <Calendar className="w-16 h-16 text-muted mx-auto mb-4" />
+                <Calendar className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-foreground mb-2">No timetables found</h3>
                 <p className="text-muted-foreground mb-6">Try adjusting your search query</p>
                 <Button
                   onClick={() => setSearchQuery("")}
                   variant="outline"
+                  className="hover:bg-primary/10 hover:text-primary transition-colors"
                 >
                   Clear Search
                 </Button>
               </>
             ) : (
               <>
-                <Calendar className="w-16 h-16 text-muted mx-auto mb-4" />
+                <Calendar className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-foreground mb-2">No timetables yet</h3>
                 <p className="text-muted-foreground mb-6">Create your first timetable to get started</p>
                 <Button
                   onClick={() => setIsCreateDialogOpen(true)}
-                  className="gap-2"
+                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all hover:shadow-md"
                 >
                   <Plus className="w-5 h-5" />
                   Create Timetable
