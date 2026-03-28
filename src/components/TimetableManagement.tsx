@@ -369,24 +369,38 @@ export const TimetableManagement = ({ timetableId }: TimetableManagementProps) =
           }
         }}
       >
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Assign Teacher</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <Label htmlFor="teacher">Select Teacher</Label>
-            <Select onValueChange={handleTeacherChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a teacher" />
-              </SelectTrigger>
-              <SelectContent>
-                {teachers.map((teacher) => (
-                  <SelectItem key={teacher.id} value={teacher.id}>
-                    {`${teacher.name} (${subjects.find((s) => s.id === teacher.subject_id)?.name})`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div>
+              <Label htmlFor="teacher" className="mb-2 block">
+                Select Teacher to Assign
+              </Label>
+              <p className="text-xs text-muted-foreground mb-3">
+                {selectedCell && timeSlots.find((ts) => ts.id === selectedCell.time_slot_id)
+                  ? `Time: ${timeSlots.find((ts) => ts.id === selectedCell.time_slot_id)?.start_time}`
+                  : ""}
+              </p>
+              <Select onValueChange={handleTeacherChange}>
+                <SelectTrigger id="teacher">
+                  <SelectValue placeholder="Select a teacher..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {teachers.map((teacher) => (
+                    <SelectItem key={teacher.id} value={teacher.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{teacher.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          ({subjects.find((s) => s.id === teacher.subject_id)?.name})
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

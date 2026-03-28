@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -40,7 +39,7 @@ export const TeacherConflictDialog = ({
 }: ConflictDialogProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-yellow-600" />
@@ -48,28 +47,41 @@ export const TeacherConflictDialog = ({
           </div>
         </DialogHeader>
 
-         <div className="space-y-4">
-           <DialogDescription className="space-y-3 text-sm">
-             <div>
-               <p>
-                 <strong>{teacherName}</strong> is already assigned to <strong>{conflictClassName} {conflictSectionName}</strong> at <strong>{timeSlotTime}</strong>.
-               </p>
-               <p>
-                 You are trying to assign them to <strong>{currentClassName} {currentSectionName}</strong> at the same time.
-               </p>
-               <p className="text-xs text-muted-foreground mt-2">
-                 What would you like to do?
-               </p>
-             </div>
-           </DialogDescription>
-
-          <div className="rounded-lg bg-muted p-3">
-            <p className="text-xs font-medium text-muted-foreground">
-              Current Assignment: {conflictClassName} {conflictSectionName}
-              <br />
-              Attempting: {currentClassName} {currentSectionName}
+        <div className="space-y-4 py-4">
+          <div className="space-y-2 text-sm">
+            <p className="text-base">
+              <strong className="text-foreground">{teacherName}</strong>{" "}
+              <span className="text-muted-foreground">
+                is already assigned to
+              </span>{" "}
+              <strong className="text-foreground">{conflictClassName} {conflictSectionName}</strong>{" "}
+              <span className="text-muted-foreground">at</span>{" "}
+              <strong className="text-foreground">{timeSlotTime}</strong>
+              <span className="text-muted-foreground">.</span>
+            </p>
+            <p className="text-base text-muted-foreground">
+              You are trying to assign them to{" "}
+              <strong className="text-foreground">{currentClassName} {currentSectionName}</strong>{" "}
+              at the same time.
             </p>
           </div>
+
+          <div className="rounded-lg bg-muted p-4 border border-border">
+            <div className="space-y-2 text-sm">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-1">Current Assignment</p>
+                <p className="font-medium">{conflictClassName} {conflictSectionName}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-1">Attempting Assignment</p>
+                <p className="font-medium">{currentClassName} {currentSectionName}</p>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-sm text-muted-foreground pt-2">
+            What would you like to do?
+          </p>
         </div>
 
         <DialogFooter className="flex flex-col gap-2 sm:flex-row">
