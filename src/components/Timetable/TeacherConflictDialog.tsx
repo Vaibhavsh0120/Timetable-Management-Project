@@ -48,27 +48,27 @@ export const TeacherConflictDialog = ({
           </div>
         </DialogHeader>
 
-         <div className="space-y-4">
-           <DialogDescription className="space-y-3 text-sm">
-             <div>
-               <p>
-                 <strong>{teacherName}</strong> is already assigned to <strong>{conflictClassName} {conflictSectionName}</strong> at <strong>{timeSlotTime}</strong>.
-               </p>
-               <p>
-                 You are trying to assign them to <strong>{currentClassName} {currentSectionName}</strong> at the same time.
-               </p>
-               <p className="text-xs text-muted-foreground mt-2">
-                 What would you like to do?
-               </p>
-             </div>
-           </DialogDescription>
+        <div className="space-y-4">
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <div>
+              <p>
+                <strong>{teacherName}</strong> is already assigned to <strong>{conflictClassName} {conflictSectionName}</strong> at <strong>{timeSlotTime}</strong>.
+              </p>
+              <p>
+                You are trying to assign them to <strong>{currentClassName} {currentSectionName}</strong> at the same time.
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                What would you like to do?
+              </p>
+            </div>
+          </div>
 
           <div className="rounded-lg bg-muted p-3">
-            <p className="text-xs font-medium text-muted-foreground">
+            <div className="text-xs font-medium text-muted-foreground">
               Current Assignment: {conflictClassName} {conflictSectionName}
               <br />
               Attempting: {currentClassName} {currentSectionName}
-            </p>
+            </div>
           </div>
         </div>
 
