@@ -212,46 +212,50 @@ export const useTimetable = (timetableId: string) => {
     setTimeTable([])
   }, [])
 
-  // Check if teacher is already assigned at the same time slot in any other class/section
-  const checkTeacherConflict = useCallback(
-    async (teacherId: string, classId: string, sectionId: string, timeSlotId: string, dayId: number) => {
-      if (!user) {
-        setError("User not authenticated")
-        return null
-      }
-
-      try {
-        // Query all timetable entries for this teacher on the same day and time slot
-        const { data, error } = await supabase
-          .from("timetableentries")
-          .select("class_id, section_id")
-          .eq("teacher_id", teacherId)
-          .eq("time_slot_id", timeSlotId)
-          .eq("day_id", dayId)
-          .neq("class_id", classId) // Exclude the current class (what we're trying to assign to)
-
-        if (error) {
-          throw error
-        }
-
-        // If there's an existing entry, return conflict info with the conflicting class and section
-        if (data && data.length > 0) {
-          return {
-            has_conflict: true,
-            conflict_class_id: data[0].class_id,
-            conflict_section_id: data[0].section_id,
-          }
-        }
-
-        return { has_conflict: false }
-      } catch (err: any) {
-        console.error("Error checking teacher conflict:", err)
-        setError(err.message || "Failed to check teacher conflict")
-        return { has_conflict: false }
-      }
-    },
-    [supabase, user],
-  )
+   // Check if teacher is already assigned at the same time slot in any other class/section
+   const checkTeacherConflict = useCallback(
+     async (teacherId: string, classId: string, sectionId: string, timeSlotId: string, dayId: number) => {
+       if (!user) {
+         setError("User not authenticated")
+         return null
+       }
+ 
+       try {
+         // Query all timetable entries for this teacher on the same day and time slot
+         const { data, error } = await supabase
+           .from("timetableentries")
+           .select("class_id, section_id")
+           .eq("teacher_id", teacherId)
+           .eq("time_slot_id", timeSlotId)
+           .eq("day_id", dayId)
+ 
+         if (error) {
+           throw error
+         }
+ 
+         // Filter out the entry that matches exactly the class/section we're trying to assign to
+         const conflictingEntries = data.filter(
+           entry => !(entry.class_id === classId && entry.section_id === sectionId)
+         )
+ 
+         // If there's any remaining entry, return conflict info with the conflicting class and section
+         if (conflictingEntries && conflictingEntries.length > 0) {
+           return {
+             has_conflict: true,
+             conflict_class_id: conflictingEntries[0].class_id,
+             conflict_section_id: conflictingEntries[0].section_id,
+           }
+         }
+ 
+         return { has_conflict: false, conflict_class_id: "", conflict_section_id: "" }
+       } catch (err: any) {
+         console.error("Error checking teacher conflict:", err)
+         setError(err.message || "Failed to check teacher conflict")
+         return { has_conflict: false, conflict_class_id: "", conflict_section_id: "" }
+       }
+     },
+     [supabase, user],
+   )
 
   return {
     timeTable,

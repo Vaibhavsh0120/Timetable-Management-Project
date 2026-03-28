@@ -77,7 +77,7 @@
 }
 
 /* Override Next.js portal positioning */
-nextjs-portal {
+/* nextjs-portal {
   left: unset !important;
   top: unset !important;
-}
+} */
